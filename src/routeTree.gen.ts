@@ -9,38 +9,115 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as EnviarProjetoRouteImport } from './routes/enviar-projeto'
+import { Route as EmpresasRouteImport } from './routes/empresas'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjetosProjetoIdRouteImport } from './routes/projetos.$projetoId'
 
+const MembrosRoute = MembrosRouteImport.update({
+  id: '/membros',
+  path: '/membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnviarProjetoRoute = EnviarProjetoRouteImport.update({
+  id: '/enviar-projeto',
+  path: '/enviar-projeto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpresasRoute = EmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjetosProjetoIdRoute = ProjetosProjetoIdRouteImport.update({
+  id: '/projetos/$projetoId',
+  path: '/projetos/$projetoId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/empresas': typeof EmpresasRoute
+  '/enviar-projeto': typeof EnviarProjetoRoute
+  '/membros': typeof MembrosRoute
+  '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/empresas': typeof EmpresasRoute
+  '/enviar-projeto': typeof EnviarProjetoRoute
+  '/membros': typeof MembrosRoute
+  '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/empresas': typeof EmpresasRoute
+  '/enviar-projeto': typeof EnviarProjetoRoute
+  '/membros': typeof MembrosRoute
+  '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/empresas'
+    | '/enviar-projeto'
+    | '/membros'
+    | '/projetos/$projetoId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/empresas'
+    | '/enviar-projeto'
+    | '/membros'
+    | '/projetos/$projetoId'
+  id:
+    | '__root__'
+    | '/'
+    | '/empresas'
+    | '/enviar-projeto'
+    | '/membros'
+    | '/projetos/$projetoId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EmpresasRoute: typeof EmpresasRoute
+  EnviarProjetoRoute: typeof EnviarProjetoRoute
+  MembrosRoute: typeof MembrosRoute
+  ProjetosProjetoIdRoute: typeof ProjetosProjetoIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/membros': {
+      id: '/membros'
+      path: '/membros'
+      fullPath: '/membros'
+      preLoaderRoute: typeof MembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enviar-projeto': {
+      id: '/enviar-projeto'
+      path: '/enviar-projeto'
+      fullPath: '/enviar-projeto'
+      preLoaderRoute: typeof EnviarProjetoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empresas': {
+      id: '/empresas'
+      path: '/empresas'
+      fullPath: '/empresas'
+      preLoaderRoute: typeof EmpresasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +125,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projetos/$projetoId': {
+      id: '/projetos/$projetoId'
+      path: '/projetos/$projetoId'
+      fullPath: '/projetos/$projetoId'
+      preLoaderRoute: typeof ProjetosProjetoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EmpresasRoute: EmpresasRoute,
+  EnviarProjetoRoute: EnviarProjetoRoute,
+  MembrosRoute: MembrosRoute,
+  ProjetosProjetoIdRoute: ProjetosProjetoIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
