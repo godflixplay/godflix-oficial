@@ -192,32 +192,25 @@ export const planosMembro: PlanoMembro[] = [
 
 export const opcoesApoio: OpcaoApoio[] = [
   {
-    id: "apoio-25",
+    id: "apoio-apoiador",
     valor: 25,
     titulo: "Apoiador",
-    descricao: "Contribua com o projeto e faça parte desta história.",
-    recompensas: ["Nome nos créditos", "Agradecimento digital"],
+    descricao: "Contribua com o projeto e receba um agradecimento especial da equipe.",
+    recompensas: ["Agradecimento digital personalizado", "Acesso a atualizações do projeto"],
   },
   {
-    id: "apoio-50",
-    valor: 50,
-    titulo: "Colaborador",
-    descricao: "Receba conteúdos exclusivos do processo de produção.",
-    recompensas: ["Nome nos créditos", "Fotos exclusivas dos bastidores", "Wallpaper digital"],
-  },
-  {
-    id: "apoio-100",
+    id: "apoio-parceiro",
     valor: 100,
-    titulo: "Produtor Amigo",
-    descricao: "Acesso privilegiado ao desenvolvimento do projeto.",
-    recompensas: ["Nome nos créditos especiais", "Making of exclusivo", "Poster digital autografado", "Acesso antecipado"],
+    titulo: "Parceiro",
+    descricao: "Tenha acesso antecipado ao conteúdo e acompanhe os bastidores da produção.",
+    recompensas: ["Acesso antecipado ao conteúdo final", "Vídeos exclusivos dos bastidores", "Nome na lista de parceiros"],
   },
   {
-    id: "apoio-250",
-    valor: 250,
-    titulo: "Produtor Associado",
-    descricao: "Seja parte fundamental desta produção.",
-    recompensas: ["Crédito como produtor associado", "Convite para pré-estreia", "Kit físico exclusivo", "Encontro virtual com a equipe"],
+    id: "apoio-coprodutor",
+    valor: 500,
+    titulo: "Coprodutor Cultural",
+    descricao: "Seu nome nos créditos oficiais. Você faz parte desta história.",
+    recompensas: ["Nome nos créditos do projeto", "Convite para pré-estreia", "Kit exclusivo da produção", "Encontro virtual com a equipe"],
   },
 ];
 
