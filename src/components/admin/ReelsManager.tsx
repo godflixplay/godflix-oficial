@@ -20,6 +20,7 @@ export interface ReelDraft {
 interface Props {
   reels: ReelDraft[];
   onChange: (reels: ReelDraft[]) => void;
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 const MAX_SIZE_MB = 500;
@@ -41,16 +42,23 @@ function SortableReel({
   reel,
   onUpdate,
   onRemove,
+  onUploadingChange,
 }: {
   reel: ReelDraft;
   onUpdate: (patch: Partial<ReelDraft>) => void;
   onRemove: () => void;
+  onUploadingChange?: (uploading: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: reel.tempId });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  const setUploadingState = (value: boolean) => {
+    setUploading(value);
+    onUploadingChange?.(value);
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,7 +67,6 @@ function SortableReel({
 
     setError(null);
 
-    // Validações
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       setError(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo: ${MAX_SIZE_MB}MB.`);
       return;
@@ -69,7 +76,7 @@ function SortableReel({
       return;
     }
 
-    setUploading(true);
+    setUploadingState(true);
     setProgress(10);
 
     try {
@@ -94,13 +101,11 @@ function SortableReel({
       setError(msg);
       console.error("[ReelsManager] upload error:", err);
     } finally {
-      setUploading(false);
+      setUploadingState(false);
       setTimeout(() => setProgress(0), 1500);
     }
   };
 
-  // Quando o usuário cola/digita um link externo no campo de URL,
-  // mudar automaticamente para o modo "link"
   const handleUrlChange = (value: string) => {
     if (reel.tipo === "upload" && isExternalVideoUrl(value)) {
       onUpdate({ video_url: value, tipo: "link" });
@@ -205,7 +210,7 @@ function SortableReel({
   );
 }
 
-export function ReelsManager({ reels, onChange }: Props) {
+export function ReelsManager({ reels, onChange, onUploadingChange }: Props) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -238,6 +243,7 @@ export function ReelsManager({ reels, onChange }: Props) {
               <SortableReel
                 key={reel.tempId}
                 reel={reel}
+                onUploadingChange={onUploadingChange}
                 onUpdate={(patch) => {
                   const updated = [...reels];
                   updated[i] = { ...updated[i], ...patch };

@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users, Film } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users, Film, Loader2 } from "lucide-react";
 import type { ProjetoDB, EquipeMembroDB, OpcaoApoioDB, CategoriaDB, StatusOptionDB, ReelDB } from "@/lib/admin-types";
 import { ReelsManager, type ReelDraft } from "@/components/admin/ReelsManager";
+import { saveProjetoAdmin } from "@/lib/admin-save.functions";
 
 export const Route = createFileRoute("/admin/projetos/$projetoId")({
   component: AdminProjetoEditor,
@@ -49,11 +50,6 @@ const normalizeInstagramUrl = (value: string) => {
   }
 };
 
-const normalizeReelUrl = (value: string, tipo: ReelDraft["tipo"]) => {
-  if (tipo !== "link") return value.trim();
-  return normalizeInstagramUrl(value);
-};
-
 interface OpcaoApoio {
   id?: string;
   valor: number;
@@ -72,9 +68,10 @@ function AdminProjetoEditor() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingTeamPhotoIndex, setUploadingTeamPhotoIndex] = useState<number | null>(null);
+  const [pendingReelUploads, setPendingReelUploads] = useState(0);
   const [saveError, setSaveError] = useState("");
 
-  // Project fields
   const [titulo, setTitulo] = useState("");
   const [slug, setSlug] = useState("");
   const [sinopse, setSinopse] = useState("");
@@ -89,18 +86,13 @@ function AdminProjetoEditor() {
   const [status, setStatus] = useState("em_financiamento");
   const [destaque, setDestaque] = useState(false);
 
-  // Team members
   const [equipe, setEquipe] = useState<EquipeMembro[]>([]);
-
-  // Support tiers
   const [opcoes, setOpcoes] = useState<OpcaoApoio[]>([]);
-
-  // Reels
   const [reels, setReels] = useState<ReelDraft[]>([]);
-
-  // Dynamic categorias / status options
   const [categoriasList, setCategoriasList] = useState<CategoriaDB[]>([]);
   const [statusList, setStatusList] = useState<StatusOptionDB[]>([]);
+
+  const hasPendingUploads = uploadingImage || uploadingTeamPhotoIndex !== null || pendingReelUploads > 0;
 
   useEffect(() => {
     (async () => {
@@ -116,11 +108,7 @@ function AdminProjetoEditor() {
 
   const loadProjeto = async () => {
     try {
-      const { data: projeto } = await supabase
-        .from("projetos" as any)
-        .select("*")
-        .eq("id", projetoId)
-        .single();
+      const { data: projeto } = await supabase.from("projetos" as any).select("*").eq("id", projetoId).single();
 
       if (!projeto) {
         navigate({ to: "/admin" });
@@ -156,7 +144,7 @@ function AdminProjetoEditor() {
             papel: m.papel,
             instagram_url: m.instagram_url || "",
             foto_url: (m as any).foto_url || "",
-          }))
+          })),
         );
       }
 
@@ -169,7 +157,7 @@ function AdminProjetoEditor() {
             descricao: o.descricao,
             recompensas: o.recompensas,
             ordem: o.ordem,
-          }))
+          })),
         );
       }
 
@@ -182,7 +170,7 @@ function AdminProjetoEditor() {
             video_url: r.video_url,
             thumbnail_url: r.thumbnail_url || "",
             tipo: r.tipo,
-          }))
+          })),
         );
       }
     } finally {
@@ -205,21 +193,23 @@ function AdminProjetoEditor() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
     setUploadingImage(true);
-    const ext = file.name.split(".").pop();
-    const path = `projetos/${Date.now()}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from("projeto-imagens")
-      .upload(path, file, { upsert: true });
-
-    if (!error) {
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `projetos/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("projeto-imagens").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
       const { data } = supabase.storage.from("projeto-imagens").getPublicUrl(path);
       setImagemUrl(data.publicUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha no upload da imagem.";
+      toast.error(message);
+    } finally {
+      setUploadingImage(false);
     }
-    setUploadingImage(false);
   };
 
   const handleSave = async () => {
@@ -228,132 +218,82 @@ function AdminProjetoEditor() {
       return;
     }
 
+    if (hasPendingUploads) {
+      setSaveError("Aguarde o término dos uploads antes de salvar o projeto.");
+      return;
+    }
+
     setSaving(true);
     setSaveError("");
-    const t0 = performance.now();
-    console.log("[admin] Salvando projeto:", { isNew, titulo, slug, reelsCount: reels.length });
-
-    // Timeout de segurança — se passar de 30s, libera o botão e mostra erro
-    const safetyTimer = setTimeout(() => {
-      console.error("[admin] Salvamento excedeu 30s — liberando UI");
-      setSaving(false);
-      setSaveError("O salvamento demorou demais. Verifique sua conexão e tente novamente.");
-    }, 30000);
 
     try {
-      const projetoData = {
-        slug: slug.trim(),
-        titulo: titulo.trim(),
-        sinopse: sinopse.trim(),
-        sinopse_completa: sinopseCompleta.trim(),
-        categoria,
-        imagem_url: imagemUrl.trim(),
-        video_url: videoUrl.trim() || null,
-        meta,
-        arrecadado,
-        apoiadores,
-        dias_restantes: diasRestantes,
-        status,
-        destaque,
-      };
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
 
-      let projectId = projetoId;
-
-      // 1) Salvar projeto principal
-      console.log("[admin] step 1: upsert projeto");
-      if (isNew) {
-        const { data, error } = await supabase
-          .from("projetos" as any)
-          .insert(projetoData as any)
-          .select("id")
-          .single();
-        if (error || !data) throw new Error(error?.message || "Não foi possível criar o projeto.");
-        projectId = (data as any).id;
-      } else {
-        const { error } = await supabase
-          .from("projetos" as any)
-          .update(projetoData as any)
-          .eq("id", projetoId);
-        if (error) throw new Error("Erro ao atualizar projeto: " + error.message);
-      }
-      console.log(`[admin] step 1 ok (${(performance.now() - t0).toFixed(0)}ms)`);
-
-      // 2) Equipe — delete + insert sequencial
-      console.log("[admin] step 2: equipe");
-      const equipePayload = equipe
-        .filter((m) => m.nome.trim())
-        .map((m) => ({
-          projeto_id: projectId,
-          nome: m.nome.trim(),
-          papel: m.papel.trim(),
-          instagram_url: normalizeInstagramUrl(m.instagram_url) || null,
-          foto_url: m.foto_url?.trim() || null,
-        }));
-      const delEq = await supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId);
-      if (delEq.error) throw new Error("Erro ao limpar equipe: " + delEq.error.message);
-      if (equipePayload.length > 0) {
-        const insEq = await supabase.from("equipe_membros" as any).insert(equipePayload as any);
-        if (insEq.error) throw new Error("Erro ao salvar equipe: " + insEq.error.message);
+      if (!accessToken) {
+        throw new Error("Sua sessão expirou. Entre novamente para salvar.");
       }
 
-      // 3) Opções de apoio
-      console.log("[admin] step 3: opcoes_apoio");
-      const opcoesPayload = opcoes
-        .filter((o) => o.titulo.trim())
-        .map((o, i) => ({
-          projeto_id: projectId,
-          valor: o.valor,
-          titulo: o.titulo.trim(),
-          descricao: o.descricao.trim(),
-          recompensas: o.recompensas.map((item) => item.trim()).filter(Boolean),
-          ordem: i,
-        }));
-      const delOp = await supabase.from("opcoes_apoio" as any).delete().eq("projeto_id", projectId);
-      if (delOp.error) throw new Error("Erro ao limpar opções: " + delOp.error.message);
-      if (opcoesPayload.length > 0) {
-        const insOp = await supabase.from("opcoes_apoio" as any).insert(opcoesPayload as any);
-        if (insOp.error) throw new Error("Erro ao salvar opções: " + insOp.error.message);
-      }
+      const result = await saveProjetoAdmin({
+        data: {
+          projeto: {
+            id: isNew ? undefined : projetoId,
+            slug: slug.trim(),
+            titulo: titulo.trim(),
+            sinopse: sinopse.trim(),
+            sinopse_completa: sinopseCompleta.trim(),
+            categoria,
+            imagem_url: imagemUrl.trim(),
+            video_url: videoUrl.trim() || null,
+            meta,
+            arrecadado,
+            apoiadores,
+            dias_restantes: diasRestantes,
+            status,
+            destaque,
+            equipe: equipe.map((m) => ({
+              nome: m.nome.trim(),
+              papel: m.papel.trim(),
+              instagram_url: normalizeInstagramUrl(m.instagram_url) || null,
+              foto_url: m.foto_url?.trim() || null,
+            })),
+            opcoes: opcoes.map((o, index) => ({
+              valor: o.valor,
+              titulo: o.titulo.trim(),
+              descricao: o.descricao.trim(),
+              recompensas: o.recompensas.map((item) => item.trim()).filter(Boolean),
+              ordem: index,
+            })),
+            reels: reels.map((r, index) => ({
+              titulo: (r.titulo || "").trim(),
+              video_url: r.video_url.trim(),
+              thumbnail_url: r.thumbnail_url?.trim() || null,
+              tipo: r.tipo,
+              ordem: index,
+            })),
+          },
+        },
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-      // 4) Reels
-      console.log("[admin] step 4: reels");
-      const reelsPayload = reels
-        .filter((r) => r.video_url && r.video_url.trim())
-        .map((r, i) => ({
-          projeto_id: projectId,
-          titulo: (r.titulo || "").trim(),
-          video_url: normalizeReelUrl(r.video_url, r.tipo),
-          thumbnail_url: r.thumbnail_url && r.thumbnail_url.trim() ? r.thumbnail_url.trim() : null,
-          tipo: r.tipo,
-          ordem: i,
-        }));
-      console.log("[admin] reels payload:", reelsPayload);
-      const delReels = await supabase.from("projeto_reels" as any).delete().eq("projeto_id", projectId);
-      if (delReels.error) throw new Error("Erro ao limpar reels: " + delReels.error.message);
-      if (reelsPayload.length > 0) {
-        const insReels = await supabase.from("projeto_reels" as any).insert(reelsPayload as any);
-        if (insReels.error) throw new Error("Erro ao salvar reels: " + insReels.error.message);
-      }
-
-      clearTimeout(safetyTimer);
-      console.log(`[admin] ✓ Projeto salvo com sucesso em ${(performance.now() - t0).toFixed(0)}ms:`, projectId);
-      // Invalida caches para refletir mudanças imediatamente
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["projetos", "home"] });
       queryClient.invalidateQueries({ queryKey: ["projeto"] });
-      setSaving(false);
-      navigate({ to: "/admin" });
+      toast.success("Projeto salvo com sucesso.");
+      navigate({ to: "/admin/projetos/$projetoId", params: { projetoId: result.id } });
     } catch (error) {
-      clearTimeout(safetyTimer);
       const message = error instanceof Error ? error.message : "Erro desconhecido ao salvar o projeto.";
-      console.error("[admin] ✗ erro ao salvar projeto:", error);
+      console.error("[admin] save failed:", error);
       setSaveError(message);
+      toast.error(message);
+    } finally {
       setSaving(false);
     }
   };
 
-  // Team helpers
-   const addMembro = () => setEquipe([...equipe, { nome: "", papel: "", instagram_url: "", foto_url: "" }]);
+  const addMembro = () => setEquipe([...equipe, { nome: "", papel: "", instagram_url: "", foto_url: "" }]);
   const removeMembro = (i: number) => setEquipe(equipe.filter((_, idx) => idx !== i));
   const updateMembro = (i: number, field: keyof EquipeMembro, value: string) => {
     const updated = [...equipe];
@@ -361,28 +301,31 @@ function AdminProjetoEditor() {
     setEquipe(updated);
   };
 
-   const handleMembroPhotoUpload = async (index: number, file: File) => {
-     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-     const path = `equipe/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const handleMembroPhotoUpload = async (index: number, file: File) => {
+    setUploadingTeamPhotoIndex(index);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `equipe/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-     const { error } = await supabase.storage.from("projeto-imagens").upload(path, file, {
-       upsert: false,
-       contentType: file.type,
-       cacheControl: "3600",
-     });
+      const { error } = await supabase.storage.from("projeto-imagens").upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+        cacheControl: "3600",
+      });
 
-     if (error) {
-       toast.error(`Falha no upload da foto: ${error.message}`);
-       return;
-     }
+      if (error) throw error;
+      const { data } = supabase.storage.from("projeto-imagens").getPublicUrl(path);
+      updateMembro(index, "foto_url", data.publicUrl);
+      toast.success("Foto enviada com sucesso.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha no upload da foto.";
+      toast.error(message);
+    } finally {
+      setUploadingTeamPhotoIndex(null);
+    }
+  };
 
-     const { data } = supabase.storage.from("projeto-imagens").getPublicUrl(path);
-     updateMembro(index, "foto_url", data.publicUrl);
-   };
-
-  // Support tier helpers
-  const addOpcao = () =>
-    setOpcoes([...opcoes, { valor: 0, titulo: "", descricao: "", recompensas: [], ordem: opcoes.length }]);
+  const addOpcao = () => setOpcoes([...opcoes, { valor: 0, titulo: "", descricao: "", recompensas: [], ordem: opcoes.length }]);
   const removeOpcao = (i: number) => setOpcoes(opcoes.filter((_, idx) => idx !== i));
   const updateOpcao = (i: number, field: string, value: any) => {
     const updated = [...opcoes];
@@ -396,20 +339,16 @@ function AdminProjetoEditor() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <Button asChild variant="ghost" size="sm">
           <Link to="/admin">
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold text-foreground">
-          {isNew ? "Novo Projeto" : `Editar: ${titulo}`}
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground">{isNew ? "Novo Projeto" : `Editar: ${titulo}`}</h1>
       </div>
 
       <div className="space-y-6">
-        {/* Basic Info */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg">Informações Básicas</CardTitle>
@@ -436,7 +375,9 @@ function AdminProjetoEditor() {
                 >
                   {categoriasList.length === 0 && <option value={categoria}>{categoria}</option>}
                   {categoriasList.map((c) => (
-                    <option key={c.id} value={c.nome} className="bg-background text-foreground">{c.nome}</option>
+                    <option key={c.id} value={c.nome} className="bg-background text-foreground">
+                      {c.nome}
+                    </option>
                   ))}
                 </select>
                 <p className="text-xs text-muted-foreground">Gerencie as categorias na página inicial do admin.</p>
@@ -450,7 +391,9 @@ function AdminProjetoEditor() {
                 >
                   {statusList.length === 0 && <option value={status}>{status}</option>}
                   {statusList.map((s) => (
-                    <option key={s.id} value={s.valor} className="bg-background text-foreground">{s.label}</option>
+                    <option key={s.id} value={s.valor} className="bg-background text-foreground">
+                      {s.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -473,7 +416,6 @@ function AdminProjetoEditor() {
           </CardContent>
         </Card>
 
-        {/* Media */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -484,9 +426,7 @@ function AdminProjetoEditor() {
             <div className="space-y-2">
               <Label>Imagem de Capa</Label>
               <div className="flex items-start gap-4">
-                {imagemUrl && (
-                  <img src={imagemUrl} alt="Capa" className="w-40 h-24 object-cover rounded-lg border border-border" />
-                )}
+                {imagemUrl && <img src={imagemUrl} alt="Capa" className="w-40 h-24 object-cover rounded-lg border border-border" />}
                 <div className="flex-1 space-y-2">
                   <Input value={imagemUrl} onChange={(e) => setImagemUrl(e.target.value)} placeholder="URL da imagem ou faça upload" />
                   <div>
@@ -512,7 +452,6 @@ function AdminProjetoEditor() {
           </CardContent>
         </Card>
 
-        {/* Funding */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg">Financiamento</CardTitle>
@@ -539,7 +478,6 @@ function AdminProjetoEditor() {
           </CardContent>
         </Card>
 
-        {/* Team */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -560,7 +498,7 @@ function AdminProjetoEditor() {
                     )}
                   </div>
                   <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-primary hover:underline">
-                    <Upload className="h-3 w-3" /> Foto
+                    {uploadingTeamPhotoIndex === i ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Foto
                     <input
                       type="file"
                       accept="image/*"
@@ -570,6 +508,7 @@ function AdminProjetoEditor() {
                         e.currentTarget.value = "";
                         if (file) handleMembroPhotoUpload(i, file);
                       }}
+                      disabled={uploadingTeamPhotoIndex !== null}
                     />
                   </label>
                 </div>
@@ -589,7 +528,7 @@ function AdminProjetoEditor() {
                     </Label>
                     <Input
                       value={m.instagram_url}
-                      onChange={(e) => updateMembro(i, "instagram_url", normalizeInstagramUrl(e.target.value))}
+                      onChange={(e) => updateMembro(i, "instagram_url", e.target.value)}
                       placeholder="https://instagram.com/usuario"
                     />
                   </div>
@@ -609,7 +548,6 @@ function AdminProjetoEditor() {
           </CardContent>
         </Card>
 
-        {/* Support Tiers */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg">Níveis de Contribuição</CardTitle>
@@ -654,7 +592,6 @@ function AdminProjetoEditor() {
           </CardContent>
         </Card>
 
-        {/* Reels (vídeos verticais) */}
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -662,17 +599,23 @@ function AdminProjetoEditor() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ReelsManager reels={reels} onChange={setReels} />
+            <ReelsManager
+              reels={reels}
+              onChange={setReels}
+              onUploadingChange={(uploading) => {
+                setPendingReelUploads((current) => Math.max(0, current + (uploading ? 1 : -1)));
+              }}
+            />
           </CardContent>
         </Card>
 
-        {/* Actions */}
         <div className="flex items-center justify-end gap-3 pb-8">
           {saveError && <p className="mr-auto text-sm text-destructive">{saveError}</p>}
+          {hasPendingUploads && <p className="mr-auto text-sm text-muted-foreground">Aguarde o término dos uploads antes de salvar.</p>}
           <Button asChild variant="outline">
             <Link to="/admin">Cancelar</Link>
           </Button>
-          <Button onClick={handleSave} disabled={saving || !titulo} className="bg-primary text-primary-foreground gap-2">
+          <Button onClick={handleSave} disabled={saving || !titulo || hasPendingUploads} className="bg-primary text-primary-foreground gap-2">
             <Save className="h-4 w-4" /> {saving ? "Salvando..." : "Salvar Projeto"}
           </Button>
         </div>
