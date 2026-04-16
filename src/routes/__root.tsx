@@ -1,8 +1,13 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
+import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 import appCss from "../styles.css?url";
+
+interface RouterContext {
+  queryClient: QueryClient;
+}
 
 function NotFoundComponent() {
   return (
@@ -26,7 +31,7 @@ function NotFoundComponent() {
   );
 }
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -60,18 +65,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
   const location = useLocation();
   const isAdmin = location.pathname.startsWith("/admin");
 
-  if (isAdmin) {
-    return <Outlet />;
-  }
-
   return (
-    <>
-      <Header />
-      <Outlet />
-      <Footer />
-    </>
+    <QueryClientProvider client={queryClient}>
+      {isAdmin ? (
+        <Outlet />
+      ) : (
+        <>
+          <Header />
+          <Outlet />
+          <Footer />
+        </>
+      )}
+    </QueryClientProvider>
   );
 }
