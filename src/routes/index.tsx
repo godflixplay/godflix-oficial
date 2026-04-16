@@ -61,7 +61,7 @@ function HomePage() {
       }));
 
       setProjetos(mapped);
-      setCategorias(((catsData as CategoriaRow[]) ?? []).map((c) => c.nome));
+      setCategorias(((catsData as unknown as CategoriaRow[]) ?? []).map((c) => c.nome));
       setLoading(false);
     };
     load();
