@@ -49,6 +49,11 @@ const normalizeInstagramUrl = (value: string) => {
   }
 };
 
+const normalizeReelUrl = (value: string, tipo: ReelDraft["tipo"]) => {
+  if (tipo !== "link") return value.trim();
+  return normalizeInstagramUrl(value);
+};
+
 interface OpcaoApoio {
   id?: string;
   valor: number;
@@ -317,7 +322,7 @@ function AdminProjetoEditor() {
         .map((r, i) => ({
           projeto_id: projectId,
           titulo: (r.titulo || "").trim(),
-          video_url: r.video_url.trim(),
+          video_url: normalizeReelUrl(r.video_url, r.tipo),
           thumbnail_url: r.thumbnail_url && r.thumbnail_url.trim() ? r.thumbnail_url.trim() : null,
           tipo: r.tipo,
           ordem: i,
