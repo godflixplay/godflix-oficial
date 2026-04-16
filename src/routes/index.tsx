@@ -6,12 +6,7 @@ import { Carousel } from "@/components/Carousel";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { Heart, Users, Building2, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  type Projeto,
-  type Categoria,
-  formatCurrency,
-  calcProgress,
-} from "@/lib/mock-data";
+import { type Projeto, type Categoria } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -25,16 +20,22 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+interface CategoriaRow {
+  nome: string;
+  ordem: number;
+}
+
 function HomePage() {
   const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
-        .from("projetos")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [{ data: projetosData, error }, { data: catsData }] = await Promise.all([
+        supabase.from("projetos").select("*").order("created_at", { ascending: false }),
+        supabase.from("categorias" as any).select("nome, ordem").order("ordem"),
+      ]);
 
       if (error) {
         console.error("[home] erro carregando projetos:", error);
@@ -42,7 +43,7 @@ function HomePage() {
         return;
       }
 
-      const mapped: Projeto[] = (data ?? []).map((p) => ({
+      const mapped: Projeto[] = (projetosData ?? []).map((p: any) => ({
         id: p.slug,
         titulo: p.titulo,
         sinopse: p.sinopse,
@@ -56,9 +57,11 @@ function HomePage() {
         status: p.status,
         equipe: [],
         destaque: p.destaque,
+        ordemDestaque: p.ordem_destaque ?? 0,
       }));
 
       setProjetos(mapped);
+      setCategorias(((catsData as CategoriaRow[]) ?? []).map((c) => c.nome));
       setLoading(false);
     };
     load();
@@ -86,60 +89,19 @@ function HomePage() {
     );
   }
 
-  const destaque = projetos.find((p) => p.destaque) ?? projetos[0];
-  const progress = calcProgress(destaque.arrecadado, destaque.meta);
+  const destaques = projetos
+    .filter((p) => p.destaque)
+    .sort((a, b) => (a.ordemDestaque ?? 0) - (b.ordemDestaque ?? 0));
+  const destaquesHero = destaques.length > 0 ? destaques : [projetos[0]];
 
-  const categoriasComProjetos = categorias
+  const categoriasOrdenadas = categorias.length > 0 ? categorias : Array.from(new Set(projetos.map((p) => p.categoria)));
+  const categoriasComProjetos = categoriasOrdenadas
     .map((cat) => ({ categoria: cat, projetos: projetos.filter((p) => p.categoria === cat) }))
     .filter((c) => c.projetos.length > 0);
 
   return (
     <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative h-[85vh] min-h-[600px] flex items-end">
-        <img
-          src={destaque.imagem}
-          alt={destaque.titulo}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 w-full">
-          <Badge className="mb-4 bg-primary/90 text-primary-foreground">{destaque.categoria}</Badge>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-4 max-w-2xl leading-tight">
-            {destaque.titulo}
-          </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-xl mb-6 leading-relaxed">
-            {destaque.sinopse}
-          </p>
-
-          <div className="max-w-md mb-6">
-            <Progress value={progress} className="h-2 mb-2" />
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-primary font-semibold">{formatCurrency(destaque.arrecadado)}</span>
-              <span className="text-muted-foreground">Meta: {formatCurrency(destaque.meta)}</span>
-            </div>
-            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-              <span>{destaque.apoiadores} apoiadores</span>
-              <span>{destaque.diasRestantes} dias restantes</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
-              <Link to="/projetos/$projetoId" params={{ projetoId: destaque.id }}>
-                <Heart className="h-5 w-5" /> Apoiar este projeto
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="gap-2">
-              <Link to="/projetos/$projetoId" params={{ projetoId: destaque.id }}>
-                <Play className="h-5 w-5" /> Saiba mais
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <HeroCarousel destaques={destaquesHero} />
 
       {/* Carousels */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-12">
