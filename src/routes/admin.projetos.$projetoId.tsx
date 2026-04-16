@@ -245,6 +245,8 @@ function AdminProjetoEditor() {
     }
 
     setSaving(false);
+    console.log("[admin] Projeto salvo com sucesso:", projectId);
+    alert(isNew ? "Projeto criado com sucesso!" : "Projeto atualizado!");
     navigate({ to: "/admin" });
   };
 
