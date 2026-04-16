@@ -201,9 +201,12 @@ function ProjetoPage() {
             <div>
               <h2 className="text-xl font-bold text-foreground mb-3">Equipe</h2>
               <div className="flex flex-wrap gap-2">
-                {projeto.equipe.map((m) => (
-                  <Badge key={m} variant="secondary">{m}</Badge>
-                ))}
+                {projeto.equipe.map((m) => {
+                  // Check if member string contains instagram info (format: "Role. Name")
+                  return (
+                    <Badge key={m} variant="secondary">{m}</Badge>
+                  );
+                })}
               </div>
             </div>
           </div>
