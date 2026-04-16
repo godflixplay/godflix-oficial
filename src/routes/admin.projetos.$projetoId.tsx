@@ -196,7 +196,15 @@ function AdminProjetoEditor() {
 
     setSaving(true);
     setSaveError("");
-    console.log("[admin] Salvando projeto:", { isNew, titulo, slug });
+    const t0 = performance.now();
+    console.log("[admin] Salvando projeto:", { isNew, titulo, slug, reelsCount: reels.length });
+
+    // Timeout de segurança — se passar de 30s, libera o botão e mostra erro
+    const safetyTimer = setTimeout(() => {
+      console.error("[admin] Salvamento excedeu 30s — liberando UI");
+      setSaving(false);
+      setSaveError("O salvamento demorou demais. Verifique sua conexão e tente novamente.");
+    }, 30000);
 
     try {
       const projetoData = {
@@ -215,117 +223,92 @@ function AdminProjetoEditor() {
         destaque,
       };
 
-      const equipePayload = equipe
-        .filter((m) => m.nome.trim())
-        .map((m) => ({
-          projeto_id: "",
-          nome: m.nome.trim(),
-          papel: m.papel.trim(),
-          instagram_url: m.instagram_url.trim() || null,
-        }));
-
-      const opcoesPayload = opcoes
-        .filter((o) => o.titulo.trim())
-        .map((o, i) => ({
-          projeto_id: "",
-          valor: o.valor,
-          titulo: o.titulo.trim(),
-          descricao: o.descricao.trim(),
-          recompensas: o.recompensas.map((item) => item.trim()).filter(Boolean),
-          ordem: i,
-        }));
-
       let projectId = projetoId;
 
+      // 1) Salvar projeto principal
+      console.log("[admin] step 1: upsert projeto");
       if (isNew) {
         const { data, error } = await supabase
           .from("projetos" as any)
           .insert(projetoData as any)
           .select("id")
           .single();
-
-        if (error || !data) {
-          throw new Error(error?.message || "Não foi possível criar o projeto.");
-        }
-
+        if (error || !data) throw new Error(error?.message || "Não foi possível criar o projeto.");
         projectId = (data as any).id;
       } else {
         const { error } = await supabase
           .from("projetos" as any)
           .update(projetoData as any)
           .eq("id", projetoId);
+        if (error) throw new Error("Erro ao atualizar projeto: " + error.message);
+      }
+      console.log(`[admin] step 1 ok (${(performance.now() - t0).toFixed(0)}ms)`);
 
-        if (error) {
-          throw new Error(error.message);
-        }
+      // 2) Equipe — delete + insert sequencial
+      console.log("[admin] step 2: equipe");
+      const equipePayload = equipe
+        .filter((m) => m.nome.trim())
+        .map((m) => ({
+          projeto_id: projectId,
+          nome: m.nome.trim(),
+          papel: m.papel.trim(),
+          instagram_url: m.instagram_url.trim() || null,
+        }));
+      const delEq = await supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId);
+      if (delEq.error) throw new Error("Erro ao limpar equipe: " + delEq.error.message);
+      if (equipePayload.length > 0) {
+        const insEq = await supabase.from("equipe_membros" as any).insert(equipePayload as any);
+        if (insEq.error) throw new Error("Erro ao salvar equipe: " + insEq.error.message);
       }
 
-      for (const item of equipePayload) {
-        item.projeto_id = projectId;
+      // 3) Opções de apoio
+      console.log("[admin] step 3: opcoes_apoio");
+      const opcoesPayload = opcoes
+        .filter((o) => o.titulo.trim())
+        .map((o, i) => ({
+          projeto_id: projectId,
+          valor: o.valor,
+          titulo: o.titulo.trim(),
+          descricao: o.descricao.trim(),
+          recompensas: o.recompensas.map((item) => item.trim()).filter(Boolean),
+          ordem: i,
+        }));
+      const delOp = await supabase.from("opcoes_apoio" as any).delete().eq("projeto_id", projectId);
+      if (delOp.error) throw new Error("Erro ao limpar opções: " + delOp.error.message);
+      if (opcoesPayload.length > 0) {
+        const insOp = await supabase.from("opcoes_apoio" as any).insert(opcoesPayload as any);
+        if (insOp.error) throw new Error("Erro ao salvar opções: " + insOp.error.message);
       }
 
-      for (const item of opcoesPayload) {
-        item.projeto_id = projectId;
-      }
-
+      // 4) Reels
+      console.log("[admin] step 4: reels");
       const reelsPayload = reels
-        .filter((r) => r.video_url.trim())
+        .filter((r) => r.video_url && r.video_url.trim())
         .map((r, i) => ({
           projeto_id: projectId,
-          titulo: r.titulo.trim(),
+          titulo: (r.titulo || "").trim(),
           video_url: r.video_url.trim(),
-          thumbnail_url: r.thumbnail_url.trim() || null,
+          thumbnail_url: r.thumbnail_url && r.thumbnail_url.trim() ? r.thumbnail_url.trim() : null,
           tipo: r.tipo,
           ordem: i,
         }));
-
-      const [deleteEquipeResult, deleteOpcoesResult, deleteReelsResult] = await Promise.all([
-        supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId),
-        supabase.from("opcoes_apoio" as any).delete().eq("projeto_id", projectId),
-        supabase.from("projeto_reels" as any).delete().eq("projeto_id", projectId),
-      ]);
-
-      if (deleteEquipeResult.error) {
-        throw new Error(deleteEquipeResult.error.message);
-      }
-
-      if (deleteOpcoesResult.error) {
-        throw new Error(deleteOpcoesResult.error.message);
-      }
-
-      if (deleteReelsResult.error) {
-        throw new Error(deleteReelsResult.error.message);
-      }
-
-      const insertOperations = [];
-
-      if (equipePayload.length > 0) {
-        insertOperations.push(supabase.from("equipe_membros" as any).insert(equipePayload as any));
-      }
-
-      if (opcoesPayload.length > 0) {
-        insertOperations.push(supabase.from("opcoes_apoio" as any).insert(opcoesPayload as any));
-      }
-
+      console.log("[admin] reels payload:", reelsPayload);
+      const delReels = await supabase.from("projeto_reels" as any).delete().eq("projeto_id", projectId);
+      if (delReels.error) throw new Error("Erro ao limpar reels: " + delReels.error.message);
       if (reelsPayload.length > 0) {
-        insertOperations.push(supabase.from("projeto_reels" as any).insert(reelsPayload as any));
+        const insReels = await supabase.from("projeto_reels" as any).insert(reelsPayload as any);
+        if (insReels.error) throw new Error("Erro ao salvar reels: " + insReels.error.message);
       }
 
-      const insertResults = insertOperations.length > 0 ? await Promise.all(insertOperations) : [];
-
-      for (const result of insertResults) {
-        if (result.error) {
-          throw new Error(result.error.message);
-        }
-      }
-
-      console.log("[admin] Projeto salvo com sucesso:", projectId);
+      clearTimeout(safetyTimer);
+      console.log(`[admin] ✓ Projeto salvo com sucesso em ${(performance.now() - t0).toFixed(0)}ms:`, projectId);
+      setSaving(false);
       navigate({ to: "/admin" });
     } catch (error) {
+      clearTimeout(safetyTimer);
       const message = error instanceof Error ? error.message : "Erro desconhecido ao salvar o projeto.";
-      console.error("[admin] erro ao salvar projeto:", error);
+      console.error("[admin] ✗ erro ao salvar projeto:", error);
       setSaveError(message);
-    } finally {
       setSaving(false);
     }
   };
