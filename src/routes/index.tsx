@@ -1,12 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Carousel } from "@/components/Carousel";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { Heart, Users, Building2, ChevronRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { type Projeto, type Categoria } from "@/lib/mock-data";
+import { projetosHomeQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,63 +17,48 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Financie e apoie projetos audiovisuais cristãos que transformam vidas." },
     ],
   }),
+  loader: ({ context: { queryClient } }) => {
+    queryClient.ensureQueryData(projetosHomeQuery());
+  },
   component: HomePage,
+  pendingComponent: HomeLoading,
 });
 
-interface CategoriaRow {
-  nome: string;
-  ordem: number;
+function HomeLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-muted-foreground">Carregando projetos…</p>
+    </div>
+  );
 }
 
 function HomePage() {
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [loading, setLoading] = useState(true);
+  return (
+    <Suspense fallback={<HomeLoading />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
 
-  useEffect(() => {
-    const load = async () => {
-      const [{ data: projetosData, error }, { data: catsData }] = await Promise.all([
-        supabase.from("projetos").select("*").order("created_at", { ascending: false }),
-        supabase.from("categorias" as any).select("nome, ordem").order("ordem"),
-      ]);
-
-      if (error) {
-        console.error("[home] erro carregando projetos:", error);
-        setLoading(false);
-        return;
-      }
-
-      const mapped: Projeto[] = (projetosData ?? []).map((p: any) => ({
-        id: p.slug,
-        titulo: p.titulo,
-        sinopse: p.sinopse,
-        sinopseCompleta: p.sinopse_completa ?? "",
-        categoria: p.categoria as Categoria,
-        imagem: p.imagem_url || "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1200&h=675&fit=crop",
-        meta: Number(p.meta),
-        arrecadado: Number(p.arrecadado),
-        apoiadores: p.apoiadores,
-        diasRestantes: p.dias_restantes,
-        status: p.status,
-        equipe: [],
-        destaque: p.destaque,
-        ordemDestaque: p.ordem_destaque ?? 0,
-      }));
-
-      setProjetos(mapped);
-      setCategorias(((catsData as unknown as CategoriaRow[]) ?? []).map((c) => c.nome));
-      setLoading(false);
-    };
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando projetos…</p>
-      </div>
-    );
-  }
+function HomeContent() {
+  const { data } = useSuspenseQuery(projetosHomeQuery());
+  const projetos: Projeto[] = (data.projetos ?? []).map((p: any) => ({
+    id: p.slug,
+    titulo: p.titulo,
+    sinopse: p.sinopse,
+    sinopseCompleta: p.sinopse_completa ?? "",
+    categoria: p.categoria as Categoria,
+    imagem: p.imagem_url || "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1200&h=675&fit=crop",
+    meta: Number(p.meta),
+    arrecadado: Number(p.arrecadado),
+    apoiadores: p.apoiadores,
+    diasRestantes: p.dias_restantes,
+    status: p.status,
+    equipe: [],
+    destaque: p.destaque,
+    ordemDestaque: p.ordem_destaque ?? 0,
+  }));
+  const categorias: Categoria[] = data.categorias as Categoria[];
 
   if (projetos.length === 0) {
     return (

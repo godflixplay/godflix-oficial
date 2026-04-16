@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ interface OpcaoApoio {
 function AdminProjetoEditor() {
   const { projetoId } = Route.useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isNew = projetoId === "novo";
 
   const [saving, setSaving] = useState(false);
@@ -302,6 +304,10 @@ function AdminProjetoEditor() {
 
       clearTimeout(safetyTimer);
       console.log(`[admin] ✓ Projeto salvo com sucesso em ${(performance.now() - t0).toFixed(0)}ms:`, projectId);
+      // Invalida caches para refletir mudanças imediatamente
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["projetos", "home"] });
+      queryClient.invalidateQueries({ queryKey: ["projeto"] });
       setSaving(false);
       navigate({ to: "/admin" });
     } catch (error) {

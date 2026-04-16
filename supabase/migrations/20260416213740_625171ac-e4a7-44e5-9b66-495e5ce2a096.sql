@@ -1,0 +1,2 @@
+ALTER TABLE public.projetos ADD COLUMN IF NOT EXISTS ordem_categoria integer NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_projetos_categoria_ordem ON public.projetos (categoria, ordem_categoria);
