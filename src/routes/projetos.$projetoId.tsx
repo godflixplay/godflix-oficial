@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Users, Clock, ArrowLeft, Star, Sparkles, Crown, Instagram } from "lucide-react";
 import { formatCurrency, calcProgress } from "@/lib/mock-data";
-import { supabase } from "@/integrations/supabase/client";
 import { ReelsCarousel, type ReelItem } from "@/components/ReelsCarousel";
+import { projetoDetalheQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/projetos/$projetoId")({
   head: ({ params }) => ({
@@ -16,25 +17,18 @@ export const Route = createFileRoute("/projetos/$projetoId")({
       { name: "description", content: "Projeto audiovisual cristão na Godflix" },
     ],
   }),
+  loader: ({ context: { queryClient }, params }) => {
+    queryClient.ensureQueryData(projetoDetalheQuery(params.projetoId));
+  },
   component: ProjetoPage,
+  pendingComponent: () => (
+    <div className="min-h-screen flex items-center justify-center pt-16">
+      <p className="text-muted-foreground">Carregando projeto…</p>
+    </div>
+  ),
 });
 
 const tierIcons = [Star, Sparkles, Crown];
-
-interface ProjetoData {
-  id: string;
-  slug: string;
-  titulo: string;
-  sinopse: string;
-  sinopse_completa: string;
-  categoria: string;
-  imagem_url: string;
-  meta: number;
-  arrecadado: number;
-  apoiadores: number;
-  dias_restantes: number;
-  status: string;
-}
 
 interface EquipeMembro {
   id: string;
@@ -52,60 +46,24 @@ interface OpcaoApoio {
 }
 
 function ProjetoPage() {
-  const { projetoId } = Route.useParams();
-  const [projeto, setProjeto] = useState<ProjetoData | null>(null);
-  const [equipe, setEquipe] = useState<EquipeMembro[]>([]);
-  const [opcoes, setOpcoes] = useState<OpcaoApoio[]>([]);
-  const [reels, setReels] = useState<ReelItem[]>([]);
-  const [statusLabel, setStatusLabel] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      const { data: projetoData } = await supabase
-        .from("projetos")
-        .select("*")
-        .eq("slug", projetoId)
-        .maybeSingle();
-
-      if (!active) return;
-      if (!projetoData) {
-        setProjeto(null);
-        setLoading(false);
-        return;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center pt-16">
+          <p className="text-muted-foreground">Carregando projeto…</p>
+        </div>
       }
-      setProjeto(projetoData as ProjetoData);
+    >
+      <ProjetoContent />
+    </Suspense>
+  );
+}
 
-      const [{ data: equipeData }, { data: opcoesData }, { data: reelsData }, { data: statusData }] = await Promise.all([
-        supabase.from("equipe_membros").select("*").eq("projeto_id", projetoData.id),
-        supabase.from("opcoes_apoio").select("*").eq("projeto_id", projetoData.id).order("ordem"),
-        supabase.from("projeto_reels" as any).select("*").eq("projeto_id", projetoData.id).order("ordem"),
-        supabase.from("status_options" as any).select("valor, label").eq("valor", projetoData.status).maybeSingle(),
-      ]);
+function ProjetoContent() {
+  const { projetoId } = Route.useParams();
+  const { data } = useSuspenseQuery(projetoDetalheQuery(projetoId));
 
-      if (!active) return;
-      setEquipe((equipeData as EquipeMembro[]) || []);
-      setOpcoes((opcoesData as OpcaoApoio[]) || []);
-      setReels((reelsData as unknown as ReelItem[]) || []);
-      setStatusLabel((statusData as any)?.label || projetoData.status);
-      setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [projetoId]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center pt-16">
-        <p className="text-muted-foreground">Carregando projeto...</p>
-      </div>
-    );
-  }
-
-  if (!projeto) {
+  if (!data || !data.projeto) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-16">
         <div className="text-center">
@@ -115,6 +73,12 @@ function ProjetoPage() {
       </div>
     );
   }
+
+  const projeto = data.projeto as any;
+  const equipe = data.equipe as EquipeMembro[];
+  const opcoes = data.opcoes as OpcaoApoio[];
+  const reels = data.reels as unknown as ReelItem[];
+  const statusLabel = data.statusLabel;
 
   const progress = calcProgress(projeto.arrecadado, projeto.meta);
 
