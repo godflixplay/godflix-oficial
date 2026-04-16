@@ -163,6 +163,7 @@ export type Database = {
           id: string
           imagem_url: string
           meta: number
+          ordem_categoria: number
           ordem_destaque: number
           sinopse: string
           sinopse_completa: string
@@ -182,6 +183,7 @@ export type Database = {
           id?: string
           imagem_url?: string
           meta?: number
+          ordem_categoria?: number
           ordem_destaque?: number
           sinopse: string
           sinopse_completa?: string
@@ -201,6 +203,7 @@ export type Database = {
           id?: string
           imagem_url?: string
           meta?: number
+          ordem_categoria?: number
           ordem_destaque?: number
           sinopse?: string
           sinopse_completa?: string
