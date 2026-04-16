@@ -39,6 +39,7 @@ function AdminProjetoEditor() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   // Project fields
   const [titulo, setTitulo] = useState("");
@@ -66,70 +67,64 @@ function AdminProjetoEditor() {
   }, [projetoId]);
 
   const loadProjeto = async () => {
-    const { data: projeto } = await supabase
-      .from("projetos" as any)
-      .select("*")
-      .eq("id", projetoId)
-      .single();
+    try {
+      const { data: projeto } = await supabase
+        .from("projetos" as any)
+        .select("*")
+        .eq("id", projetoId)
+        .single();
 
-    if (!projeto) {
-      navigate({ to: "/admin" });
-      return;
+      if (!projeto) {
+        navigate({ to: "/admin" });
+        return;
+      }
+
+      const p = projeto as any as ProjetoDB;
+      setTitulo(p.titulo);
+      setSlug(p.slug);
+      setSinopse(p.sinopse);
+      setSinopseCompleta(p.sinopse_completa);
+      setCategoria(p.categoria);
+      setImagemUrl(p.imagem_url);
+      setVideoUrl(p.video_url || "");
+      setMeta(p.meta);
+      setArrecadado(p.arrecadado);
+      setApoiadores(p.apoiadores);
+      setDiasRestantes(p.dias_restantes);
+      setStatus(p.status);
+      setDestaque(p.destaque);
+
+      const [{ data: membros }, { data: opcoesData }] = await Promise.all([
+        supabase.from("equipe_membros" as any).select("*").eq("projeto_id", projetoId),
+        supabase.from("opcoes_apoio" as any).select("*").eq("projeto_id", projetoId).order("ordem", { ascending: true }),
+      ]);
+
+      if (membros) {
+        setEquipe(
+          (membros as any as EquipeMembroDB[]).map((m) => ({
+            id: m.id,
+            nome: m.nome,
+            papel: m.papel,
+            instagram_url: m.instagram_url || "",
+          }))
+        );
+      }
+
+      if (opcoesData) {
+        setOpcoes(
+          (opcoesData as any as OpcaoApoioDB[]).map((o) => ({
+            id: o.id,
+            valor: o.valor,
+            titulo: o.titulo,
+            descricao: o.descricao,
+            recompensas: o.recompensas,
+            ordem: o.ordem,
+          }))
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const p = projeto as any as ProjetoDB;
-    setTitulo(p.titulo);
-    setSlug(p.slug);
-    setSinopse(p.sinopse);
-    setSinopseCompleta(p.sinopse_completa);
-    setCategoria(p.categoria);
-    setImagemUrl(p.imagem_url);
-    setVideoUrl(p.video_url || "");
-    setMeta(p.meta);
-    setArrecadado(p.arrecadado);
-    setApoiadores(p.apoiadores);
-    setDiasRestantes(p.dias_restantes);
-    setStatus(p.status);
-    setDestaque(p.destaque);
-
-    // Load team
-    const { data: membros } = await supabase
-      .from("equipe_membros" as any)
-      .select("*")
-      .eq("projeto_id", projetoId);
-
-    if (membros) {
-      setEquipe(
-        (membros as any as EquipeMembroDB[]).map((m) => ({
-          id: m.id,
-          nome: m.nome,
-          papel: m.papel,
-          instagram_url: m.instagram_url || "",
-        }))
-      );
-    }
-
-    // Load support tiers
-    const { data: opcoesData } = await supabase
-      .from("opcoes_apoio" as any)
-      .select("*")
-      .eq("projeto_id", projetoId)
-      .order("ordem", { ascending: true });
-
-    if (opcoesData) {
-      setOpcoes(
-        (opcoesData as any as OpcaoApoioDB[]).map((o) => ({
-          id: o.id,
-          valor: o.valor,
-          titulo: o.titulo,
-          descricao: o.descricao,
-          recompensas: o.recompensas,
-          ordem: o.ordem,
-        }))
-      );
-    }
-
-    setLoading(false);
   };
 
   const generateSlug = (text: string) =>
@@ -166,88 +161,124 @@ function AdminProjetoEditor() {
 
   const handleSave = async () => {
     if (!titulo || !slug) {
-      alert("Preencha pelo menos o título do projeto.");
+      setSaveError("Preencha pelo menos o título e o slug do projeto.");
       return;
     }
+
     setSaving(true);
+    setSaveError("");
     console.log("[admin] Salvando projeto:", { isNew, titulo, slug });
 
-    const projetoData = {
-      slug,
-      titulo,
-      sinopse,
-      sinopse_completa: sinopseCompleta,
-      categoria,
-      imagem_url: imagemUrl,
-      video_url: videoUrl || null,
-      meta,
-      arrecadado,
-      apoiadores,
-      dias_restantes: diasRestantes,
-      status,
-      destaque,
-    };
+    try {
+      const projetoData = {
+        slug: slug.trim(),
+        titulo: titulo.trim(),
+        sinopse: sinopse.trim(),
+        sinopse_completa: sinopseCompleta.trim(),
+        categoria,
+        imagem_url: imagemUrl.trim(),
+        video_url: videoUrl.trim() || null,
+        meta,
+        arrecadado,
+        apoiadores,
+        dias_restantes: diasRestantes,
+        status,
+        destaque,
+      };
 
-    let projectId = projetoId;
+      const equipePayload = equipe
+        .filter((m) => m.nome.trim())
+        .map((m) => ({
+          projeto_id: "",
+          nome: m.nome.trim(),
+          papel: m.papel.trim(),
+          instagram_url: m.instagram_url.trim() || null,
+        }));
 
-    if (isNew) {
-      const { data, error } = await supabase
-        .from("projetos" as any)
-        .insert(projetoData as any)
-        .select("id")
-        .single();
-
-      if (error || !data) {
-        alert("Erro ao salvar: " + (error?.message || "Erro desconhecido"));
-        setSaving(false);
-        return;
-      }
-      projectId = (data as any).id;
-    } else {
-      const { error } = await supabase
-        .from("projetos" as any)
-        .update(projetoData as any)
-        .eq("id", projetoId);
-
-      if (error) {
-        alert("Erro ao salvar: " + error.message);
-        setSaving(false);
-        return;
-      }
-    }
-
-    // Save team members: delete all, re-insert
-    await supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId);
-    if (equipe.length > 0) {
-      await supabase.from("equipe_membros" as any).insert(
-        equipe.map((m) => ({
-          projeto_id: projectId,
-          nome: m.nome,
-          papel: m.papel,
-          instagram_url: m.instagram_url || null,
-        })) as any
-      );
-    }
-
-    // Save support tiers: delete all, re-insert
-    await supabase.from("opcoes_apoio" as any).delete().eq("projeto_id", projectId);
-    if (opcoes.length > 0) {
-      await supabase.from("opcoes_apoio" as any).insert(
-        opcoes.map((o, i) => ({
-          projeto_id: projectId,
+      const opcoesPayload = opcoes
+        .filter((o) => o.titulo.trim())
+        .map((o, i) => ({
+          projeto_id: "",
           valor: o.valor,
-          titulo: o.titulo,
-          descricao: o.descricao,
-          recompensas: o.recompensas,
+          titulo: o.titulo.trim(),
+          descricao: o.descricao.trim(),
+          recompensas: o.recompensas.map((item) => item.trim()).filter(Boolean),
           ordem: i,
-        })) as any
-      );
-    }
+        }));
 
-    setSaving(false);
-    console.log("[admin] Projeto salvo com sucesso:", projectId);
-    alert(isNew ? "Projeto criado com sucesso!" : "Projeto atualizado!");
-    navigate({ to: "/admin" });
+      let projectId = projetoId;
+
+      if (isNew) {
+        const { data, error } = await supabase
+          .from("projetos" as any)
+          .insert(projetoData as any)
+          .select("id")
+          .single();
+
+        if (error || !data) {
+          throw new Error(error?.message || "Não foi possível criar o projeto.");
+        }
+
+        projectId = (data as any).id;
+      } else {
+        const { error } = await supabase
+          .from("projetos" as any)
+          .update(projetoData as any)
+          .eq("id", projetoId);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+      }
+
+      for (const item of equipePayload) {
+        item.projeto_id = projectId;
+      }
+
+      for (const item of opcoesPayload) {
+        item.projeto_id = projectId;
+      }
+
+      const [deleteEquipeResult, deleteOpcoesResult] = await Promise.all([
+        supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId),
+        supabase.from("opcoes_apoio" as any).delete().eq("projeto_id", projectId),
+      ]);
+
+      if (deleteEquipeResult.error) {
+        throw new Error(deleteEquipeResult.error.message);
+      }
+
+      if (deleteOpcoesResult.error) {
+        throw new Error(deleteOpcoesResult.error.message);
+      }
+
+      const insertOperations = [];
+
+      if (equipePayload.length > 0) {
+        insertOperations.push(supabase.from("equipe_membros" as any).insert(equipePayload as any));
+      }
+
+      if (opcoesPayload.length > 0) {
+        insertOperations.push(supabase.from("opcoes_apoio" as any).insert(opcoesPayload as any));
+      }
+
+      const insertResults = insertOperations.length > 0 ? await Promise.all(insertOperations) : [];
+
+      for (const result of insertResults) {
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+      }
+
+      console.log("[admin] Projeto salvo com sucesso:", projectId);
+      navigate({ to: "/admin" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido ao salvar o projeto.";
+      console.error("[admin] erro ao salvar projeto:", error);
+      setSaveError(message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Team helpers
@@ -503,6 +534,7 @@ function AdminProjetoEditor() {
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pb-8">
+          {saveError && <p className="mr-auto text-sm text-destructive">{saveError}</p>}
           <Button asChild variant="outline">
             <Link to="/admin">Cancelar</Link>
           </Button>
