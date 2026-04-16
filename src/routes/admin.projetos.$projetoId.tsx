@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users, Film } from "lucide-react";
 import type { ProjetoDB, EquipeMembroDB, OpcaoApoioDB, CategoriaDB, StatusOptionDB, ReelDB } from "@/lib/admin-types";
 import { ReelsManager, type ReelDraft } from "@/components/admin/ReelsManager";
@@ -21,7 +22,37 @@ interface EquipeMembro {
   nome: string;
   papel: string;
   instagram_url: string;
+  foto_url?: string;
 }
+
+const normalizeInstagramUrl = (value: string) => {
+  const raw = value.trim();
+  if (!raw) return "";
+
+  try {
+    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^@/, "instagram.com/")}`;
+    const url = new URL(withProtocol);
+
+    if (!url.hostname.includes("instagram.com")) {
+      return raw;
+    }
+
+    url.protocol = "https:";
+    url.hash = "";
+    url.search = "";
+    url.hostname = "www.instagram.com";
+    url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+
+    return url.toString();
+  } catch {
+    return raw;
+  }
+};
+
+const normalizeReelUrl = (value: string, tipo: ReelDraft["tipo"]) => {
+  if (tipo !== "link") return value.trim();
+  return normalizeInstagramUrl(value);
+};
 
 interface OpcaoApoio {
   id?: string;
@@ -124,6 +155,7 @@ function AdminProjetoEditor() {
             nome: m.nome,
             papel: m.papel,
             instagram_url: m.instagram_url || "",
+            foto_url: (m as any).foto_url || "",
           }))
         );
       }
@@ -254,7 +286,8 @@ function AdminProjetoEditor() {
           projeto_id: projectId,
           nome: m.nome.trim(),
           papel: m.papel.trim(),
-          instagram_url: m.instagram_url.trim() || null,
+          instagram_url: normalizeInstagramUrl(m.instagram_url) || null,
+          foto_url: m.foto_url?.trim() || null,
         }));
       const delEq = await supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId);
       if (delEq.error) throw new Error("Erro ao limpar equipe: " + delEq.error.message);
@@ -289,7 +322,7 @@ function AdminProjetoEditor() {
         .map((r, i) => ({
           projeto_id: projectId,
           titulo: (r.titulo || "").trim(),
-          video_url: r.video_url.trim(),
+          video_url: normalizeReelUrl(r.video_url, r.tipo),
           thumbnail_url: r.thumbnail_url && r.thumbnail_url.trim() ? r.thumbnail_url.trim() : null,
           tipo: r.tipo,
           ordem: i,
@@ -320,13 +353,32 @@ function AdminProjetoEditor() {
   };
 
   // Team helpers
-  const addMembro = () => setEquipe([...equipe, { nome: "", papel: "", instagram_url: "" }]);
+   const addMembro = () => setEquipe([...equipe, { nome: "", papel: "", instagram_url: "", foto_url: "" }]);
   const removeMembro = (i: number) => setEquipe(equipe.filter((_, idx) => idx !== i));
   const updateMembro = (i: number, field: keyof EquipeMembro, value: string) => {
     const updated = [...equipe];
     (updated[i] as any)[field] = value;
     setEquipe(updated);
   };
+
+   const handleMembroPhotoUpload = async (index: number, file: File) => {
+     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+     const path = `equipe/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+     const { error } = await supabase.storage.from("projeto-imagens").upload(path, file, {
+       upsert: false,
+       contentType: file.type,
+       cacheControl: "3600",
+     });
+
+     if (error) {
+       toast.error(`Falha no upload da foto: ${error.message}`);
+       return;
+     }
+
+     const { data } = supabase.storage.from("projeto-imagens").getPublicUrl(path);
+     updateMembro(index, "foto_url", data.publicUrl);
+   };
 
   // Support tier helpers
   const addOpcao = () =>
@@ -497,7 +549,32 @@ function AdminProjetoEditor() {
           <CardContent className="space-y-4">
             {equipe.map((m, i) => (
               <div key={i} className="flex items-start gap-3 bg-muted/30 rounded-lg p-3">
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="w-24 shrink-0 space-y-2">
+                  <div className="aspect-[2/3] overflow-hidden rounded-xl border border-border bg-gradient-to-b from-muted to-card">
+                    {m.foto_url ? (
+                      <img src={m.foto_url} alt={m.nome || "Foto do integrante"} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-end bg-gradient-to-t from-background via-transparent to-muted p-2 text-[10px] text-muted-foreground">
+                        Retrato
+                      </div>
+                    )}
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-primary hover:underline">
+                    <Upload className="h-3 w-3" /> Foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.currentTarget.value = "";
+                        if (file) handleMembroPhotoUpload(i, file);
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Nome</Label>
                     <Input value={m.nome} onChange={(e) => updateMembro(i, "nome", e.target.value)} placeholder="Ex: Maria Silva" />
@@ -512,9 +589,13 @@ function AdminProjetoEditor() {
                     </Label>
                     <Input
                       value={m.instagram_url}
-                      onChange={(e) => updateMembro(i, "instagram_url", e.target.value)}
+                      onChange={(e) => updateMembro(i, "instagram_url", normalizeInstagramUrl(e.target.value))}
                       placeholder="https://instagram.com/usuario"
                     />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">URL da foto</Label>
+                    <Input value={m.foto_url || ""} onChange={(e) => updateMembro(i, "foto_url", e.target.value)} placeholder="URL da foto do integrante" />
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" className="text-destructive mt-5" onClick={() => removeMembro(i)}>
