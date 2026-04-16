@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Carousel } from "@/components/Carousel";
 import { Heart, Users, Building2, Play, ChevronRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  projetos,
-  getProjetoDestaque,
-  getProjetosByCategoria,
+  type Projeto,
+  type Categoria,
   categorias,
   formatCurrency,
   calcProgress,
@@ -27,11 +28,71 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const destaque = getProjetoDestaque();
+  const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("projetos")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("[home] erro carregando projetos:", error);
+        setLoading(false);
+        return;
+      }
+
+      const mapped: Projeto[] = (data ?? []).map((p) => ({
+        id: p.slug,
+        titulo: p.titulo,
+        sinopse: p.sinopse,
+        sinopseCompleta: p.sinopse_completa ?? "",
+        categoria: p.categoria as Categoria,
+        imagem: p.imagem_url || "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1200&h=675&fit=crop",
+        meta: Number(p.meta),
+        arrecadado: Number(p.arrecadado),
+        apoiadores: p.apoiadores,
+        diasRestantes: p.dias_restantes,
+        status: p.status,
+        equipe: [],
+        destaque: p.destaque,
+      }));
+
+      setProjetos(mapped);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando projetos…</p>
+      </div>
+    );
+  }
+
+  if (projetos.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <h1 className="text-3xl font-bold text-foreground">Nenhum projeto cadastrado ainda</h1>
+        <p className="text-muted-foreground max-w-md">
+          Acesse o painel administrativo para adicionar o primeiro projeto da Godflix.
+        </p>
+        <Button asChild>
+          <Link to="/admin">Ir para o admin</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const destaque = projetos.find((p) => p.destaque) ?? projetos[0];
   const progress = calcProgress(destaque.arrecadado, destaque.meta);
 
   const categoriasComProjetos = categorias
-    .map((cat) => ({ categoria: cat, projetos: getProjetosByCategoria(cat) }))
+    .map((cat) => ({ categoria: cat, projetos: projetos.filter((p) => p.categoria === cat) }))
     .filter((c) => c.projetos.length > 0);
 
   return (
@@ -84,10 +145,8 @@ function HomePage() {
 
       {/* Carousels */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-12">
-        {/* All projects */}
         <Carousel titulo="Todos os Projetos" projetos={projetos} />
 
-        {/* By category */}
         {categoriasComProjetos.map(({ categoria, projetos: projs }) => (
           <Carousel key={categoria} titulo={categoria + "s"} projetos={projs} />
         ))}
