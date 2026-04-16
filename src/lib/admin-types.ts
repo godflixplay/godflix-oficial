@@ -6,17 +6,41 @@ export interface ProjetoDB {
   titulo: string;
   sinopse: string;
   sinopse_completa: string;
-  categoria: "Filme" | "Série" | "Documentário" | "Animação" | "Teatro";
+  categoria: string;
   imagem_url: string;
   video_url: string | null;
   meta: number;
   arrecadado: number;
   apoiadores: number;
   dias_restantes: number;
-  status: "em_financiamento" | "em_producao" | "concluido";
+  status: string;
   destaque: boolean;
+  ordem_destaque: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CategoriaDB {
+  id: string;
+  nome: string;
+  ordem: number;
+}
+
+export interface StatusOptionDB {
+  id: string;
+  valor: string;
+  label: string;
+  ordem: number;
+}
+
+export interface ReelDB {
+  id: string;
+  projeto_id: string;
+  titulo: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  tipo: "upload" | "link";
+  ordem: number;
 }
 
 export interface EquipeMembroDB {

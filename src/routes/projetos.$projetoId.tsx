@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Heart, Users, Clock, ArrowLeft, Star, Sparkles, Crown, Instagram } from "lucide-react";
 import { formatCurrency, calcProgress } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
+import { ReelsCarousel, type ReelItem } from "@/components/ReelsCarousel";
 
 export const Route = createFileRoute("/projetos/$projetoId")({
   head: ({ params }) => ({
@@ -17,12 +18,6 @@ export const Route = createFileRoute("/projetos/$projetoId")({
   }),
   component: ProjetoPage,
 });
-
-const statusLabel: Record<string, string> = {
-  em_financiamento: "Em financiamento",
-  em_producao: "Em produção",
-  concluido: "Concluído",
-};
 
 const tierIcons = [Star, Sparkles, Crown];
 
@@ -61,6 +56,8 @@ function ProjetoPage() {
   const [projeto, setProjeto] = useState<ProjetoData | null>(null);
   const [equipe, setEquipe] = useState<EquipeMembro[]>([]);
   const [opcoes, setOpcoes] = useState<OpcaoApoio[]>([]);
+  const [reels, setReels] = useState<ReelItem[]>([]);
+  const [statusLabel, setStatusLabel] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,14 +78,18 @@ function ProjetoPage() {
       }
       setProjeto(projetoData as ProjetoData);
 
-      const [{ data: equipeData }, { data: opcoesData }] = await Promise.all([
+      const [{ data: equipeData }, { data: opcoesData }, { data: reelsData }, { data: statusData }] = await Promise.all([
         supabase.from("equipe_membros").select("*").eq("projeto_id", projetoData.id),
         supabase.from("opcoes_apoio").select("*").eq("projeto_id", projetoData.id).order("ordem"),
+        supabase.from("projeto_reels" as any).select("*").eq("projeto_id", projetoData.id).order("ordem"),
+        supabase.from("status_options" as any).select("valor, label").eq("valor", projetoData.status).maybeSingle(),
       ]);
 
       if (!active) return;
       setEquipe((equipeData as EquipeMembro[]) || []);
       setOpcoes((opcoesData as OpcaoApoio[]) || []);
+      setReels((reelsData as unknown as ReelItem[]) || []);
+      setStatusLabel((statusData as any)?.label || projetoData.status);
       setLoading(false);
     })();
     return () => {
@@ -129,12 +130,12 @@ function ProjetoPage() {
           </Link>
           <Badge className="mb-3 bg-primary/90 text-primary-foreground">{projeto.categoria}</Badge>
           <h1 className="text-3xl sm:text-5xl font-bold text-foreground mb-2">{projeto.titulo}</h1>
-          <p className="text-sm text-muted-foreground">{statusLabel[projeto.status]}</p>
+          <p className="text-sm text-muted-foreground">{statusLabel}</p>
         </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        {/* Funding Area */}
+        {/* Funding Area (único painel) */}
         <section className="mb-12 rounded-2xl border border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 p-6 sm:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div className="space-y-5">
@@ -185,6 +186,13 @@ function ProjetoPage() {
             </div>
           </div>
         </section>
+
+        {/* Reels */}
+        {reels.length > 0 && (
+          <section className="mb-12">
+            <ReelsCarousel reels={reels} />
+          </section>
+        )}
 
         {/* Contribution Tiers */}
         {opcoes.length > 0 && (
@@ -247,62 +255,32 @@ function ProjetoPage() {
           </section>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-8">
-            <div>
-              <h2 className="text-xl font-bold text-foreground mb-3">Sinopse</h2>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                {projeto.sinopse_completa || projeto.sinopse}
-              </p>
-            </div>
-
-            {equipe.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold text-foreground mb-3">Equipe</h2>
-                <div className="flex flex-wrap gap-2">
-                  {equipe.map((m) => (
-                    <Badge key={m.id} variant="secondary" className="gap-1.5">
-                      {m.papel ? `${m.papel}: ` : ""}{m.nome}
-                      {m.instagram_url && (
-                        <a href={m.instagram_url} target="_blank" rel="noreferrer" className="ml-1 hover:text-primary">
-                          <Instagram className="h-3 w-3" />
-                        </a>
-                      )}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
+        {/* Sinopse + Equipe (sem painel lateral duplicado) */}
+        <div className="space-y-8 mb-16 max-w-4xl">
           <div>
-            <div className="sticky top-24 bg-card border border-border rounded-xl p-6 space-y-4">
-              <Progress value={progress} className="h-2.5" />
-              <div>
-                <span className="text-2xl font-bold text-primary">{formatCurrency(projeto.arrecadado)}</span>
-                <span className="text-sm text-muted-foreground ml-2">de {formatCurrency(projeto.meta)}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-foreground">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className="font-bold">{projeto.apoiadores}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">apoiadores</span>
-                </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-foreground">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <span className="font-bold">{projeto.dias_restantes}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">dias restantes</span>
-                </div>
-              </div>
-              <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2" size="lg">
-                <Heart className="h-5 w-5" /> Apoiar este projeto
-              </Button>
-            </div>
+            <h2 className="text-xl font-bold text-foreground mb-3">Sinopse</h2>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {projeto.sinopse_completa || projeto.sinopse}
+            </p>
           </div>
+
+          {equipe.length > 0 && (
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-3">Equipe</h2>
+              <div className="flex flex-wrap gap-2">
+                {equipe.map((m) => (
+                  <Badge key={m.id} variant="secondary" className="gap-1.5">
+                    {m.papel ? `${m.papel}: ` : ""}{m.nome}
+                    {m.instagram_url && (
+                      <a href={m.instagram_url} target="_blank" rel="noreferrer" className="ml-1 hover:text-primary">
+                        <Instagram className="h-3 w-3" />
+                      </a>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

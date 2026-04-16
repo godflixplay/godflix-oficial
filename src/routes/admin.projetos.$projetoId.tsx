@@ -7,9 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users } from "lucide-react";
-import { CATEGORIAS, STATUS_OPTIONS } from "@/lib/admin-types";
-import type { ProjetoDB, EquipeMembroDB, OpcaoApoioDB } from "@/lib/admin-types";
+import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users, Film } from "lucide-react";
+import type { ProjetoDB, EquipeMembroDB, OpcaoApoioDB, CategoriaDB, StatusOptionDB, ReelDB } from "@/lib/admin-types";
+import { ReelsManager, type ReelDraft } from "@/components/admin/ReelsManager";
 
 export const Route = createFileRoute("/admin/projetos/$projetoId")({
   component: AdminProjetoEditor,
@@ -62,7 +62,22 @@ function AdminProjetoEditor() {
   // Support tiers
   const [opcoes, setOpcoes] = useState<OpcaoApoio[]>([]);
 
+  // Reels
+  const [reels, setReels] = useState<ReelDraft[]>([]);
+
+  // Dynamic categorias / status options
+  const [categoriasList, setCategoriasList] = useState<CategoriaDB[]>([]);
+  const [statusList, setStatusList] = useState<StatusOptionDB[]>([]);
+
   useEffect(() => {
+    (async () => {
+      const [{ data: cats }, { data: stats }] = await Promise.all([
+        supabase.from("categorias" as any).select("*").order("ordem"),
+        supabase.from("status_options" as any).select("*").order("ordem"),
+      ]);
+      setCategoriasList((cats as unknown as CategoriaDB[]) || []);
+      setStatusList((stats as unknown as StatusOptionDB[]) || []);
+    })();
     if (!isNew) loadProjeto();
   }, [projetoId]);
 
@@ -94,9 +109,10 @@ function AdminProjetoEditor() {
       setStatus(p.status);
       setDestaque(p.destaque);
 
-      const [{ data: membros }, { data: opcoesData }] = await Promise.all([
+      const [{ data: membros }, { data: opcoesData }, { data: reelsData }] = await Promise.all([
         supabase.from("equipe_membros" as any).select("*").eq("projeto_id", projetoId),
         supabase.from("opcoes_apoio" as any).select("*").eq("projeto_id", projetoId).order("ordem", { ascending: true }),
+        supabase.from("projeto_reels" as any).select("*").eq("projeto_id", projetoId).order("ordem", { ascending: true }),
       ]);
 
       if (membros) {
@@ -119,6 +135,19 @@ function AdminProjetoEditor() {
             descricao: o.descricao,
             recompensas: o.recompensas,
             ordem: o.ordem,
+          }))
+        );
+      }
+
+      if (reelsData) {
+        setReels(
+          (reelsData as unknown as ReelDB[]).map((r) => ({
+            id: r.id,
+            tempId: r.id,
+            titulo: r.titulo,
+            video_url: r.video_url,
+            thumbnail_url: r.thumbnail_url || "",
+            tipo: r.tipo,
           }))
         );
       }
@@ -239,9 +268,21 @@ function AdminProjetoEditor() {
         item.projeto_id = projectId;
       }
 
-      const [deleteEquipeResult, deleteOpcoesResult] = await Promise.all([
+      const reelsPayload = reels
+        .filter((r) => r.video_url.trim())
+        .map((r, i) => ({
+          projeto_id: projectId,
+          titulo: r.titulo.trim(),
+          video_url: r.video_url.trim(),
+          thumbnail_url: r.thumbnail_url.trim() || null,
+          tipo: r.tipo,
+          ordem: i,
+        }));
+
+      const [deleteEquipeResult, deleteOpcoesResult, deleteReelsResult] = await Promise.all([
         supabase.from("equipe_membros" as any).delete().eq("projeto_id", projectId),
         supabase.from("opcoes_apoio" as any).delete().eq("projeto_id", projectId),
+        supabase.from("projeto_reels" as any).delete().eq("projeto_id", projectId),
       ]);
 
       if (deleteEquipeResult.error) {
@@ -252,6 +293,10 @@ function AdminProjetoEditor() {
         throw new Error(deleteOpcoesResult.error.message);
       }
 
+      if (deleteReelsResult.error) {
+        throw new Error(deleteReelsResult.error.message);
+      }
+
       const insertOperations = [];
 
       if (equipePayload.length > 0) {
@@ -260,6 +305,10 @@ function AdminProjetoEditor() {
 
       if (opcoesPayload.length > 0) {
         insertOperations.push(supabase.from("opcoes_apoio" as any).insert(opcoesPayload as any));
+      }
+
+      if (reelsPayload.length > 0) {
+        insertOperations.push(supabase.from("projeto_reels" as any).insert(reelsPayload as any));
       }
 
       const insertResults = insertOperations.length > 0 ? await Promise.all(insertOperations) : [];
@@ -342,22 +391,25 @@ function AdminProjetoEditor() {
                 <select
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  {CATEGORIAS.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                  {categoriasList.length === 0 && <option value={categoria}>{categoria}</option>}
+                  {categoriasList.map((c) => (
+                    <option key={c.id} value={c.nome} className="bg-background text-foreground">{c.nome}</option>
                   ))}
                 </select>
+                <p className="text-xs text-muted-foreground">Gerencie as categorias na página inicial do admin.</p>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                  {statusList.length === 0 && <option value={status}>{status}</option>}
+                  {statusList.map((s) => (
+                    <option key={s.id} value={s.valor} className="bg-background text-foreground">{s.label}</option>
                   ))}
                 </select>
               </div>
@@ -529,6 +581,18 @@ function AdminProjetoEditor() {
             <Button variant="outline" size="sm" onClick={addOpcao} className="gap-1">
               <Plus className="h-4 w-4" /> Adicionar nível de contribuição
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Reels (vídeos verticais) */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Film className="h-5 w-5 text-primary" /> Reels (vídeos verticais)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReelsManager reels={reels} onChange={setReels} />
           </CardContent>
         </Card>
 
