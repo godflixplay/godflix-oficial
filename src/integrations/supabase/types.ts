@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      categorias: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
       equipe_membros: {
         Row: {
           created_at: string
@@ -90,21 +111,63 @@ export type Database = {
           },
         ]
       }
+      projeto_reels: {
+        Row: {
+          created_at: string
+          id: string
+          ordem: number
+          projeto_id: string
+          thumbnail_url: string | null
+          tipo: string
+          titulo: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          projeto_id: string
+          thumbnail_url?: string | null
+          tipo?: string
+          titulo?: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordem?: number
+          projeto_id?: string
+          thumbnail_url?: string | null
+          tipo?: string
+          titulo?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_reels_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projetos: {
         Row: {
           apoiadores: number
           arrecadado: number
-          categoria: Database["public"]["Enums"]["categoria_projeto"]
+          categoria: string
           created_at: string
           destaque: boolean
           dias_restantes: number
           id: string
           imagem_url: string
           meta: number
+          ordem_destaque: number
           sinopse: string
           sinopse_completa: string
           slug: string
-          status: Database["public"]["Enums"]["status_projeto"]
+          status: string
           titulo: string
           updated_at: string
           video_url: string | null
@@ -112,17 +175,18 @@ export type Database = {
         Insert: {
           apoiadores?: number
           arrecadado?: number
-          categoria?: Database["public"]["Enums"]["categoria_projeto"]
+          categoria?: string
           created_at?: string
           destaque?: boolean
           dias_restantes?: number
           id?: string
           imagem_url?: string
           meta?: number
+          ordem_destaque?: number
           sinopse: string
           sinopse_completa?: string
           slug: string
-          status?: Database["public"]["Enums"]["status_projeto"]
+          status?: string
           titulo: string
           updated_at?: string
           video_url?: string | null
@@ -130,20 +194,45 @@ export type Database = {
         Update: {
           apoiadores?: number
           arrecadado?: number
-          categoria?: Database["public"]["Enums"]["categoria_projeto"]
+          categoria?: string
           created_at?: string
           destaque?: boolean
           dias_restantes?: number
           id?: string
           imagem_url?: string
           meta?: number
+          ordem_destaque?: number
           sinopse?: string
           sinopse_completa?: string
           slug?: string
-          status?: Database["public"]["Enums"]["status_projeto"]
+          status?: string
           titulo?: string
           updated_at?: string
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      status_options: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          ordem: number
+          valor: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          ordem?: number
+          valor: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          ordem?: number
+          valor?: string
         }
         Relationships: []
       }
