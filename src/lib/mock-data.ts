@@ -1,6 +1,6 @@
-export type Categoria = "Filme" | "Série" | "Documentário" | "Animação" | "Teatro";
+export type Categoria = string;
 
-export type StatusProjeto = "em_financiamento" | "em_producao" | "concluido";
+export type StatusProjeto = string;
 
 export interface Projeto {
   id: string;
@@ -16,6 +16,7 @@ export interface Projeto {
   status: StatusProjeto;
   equipe: string[];
   destaque?: boolean;
+  ordemDestaque?: number;
 }
 
 export interface PlanoMembro {
