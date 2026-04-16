@@ -7,9 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users } from "lucide-react";
-import { CATEGORIAS, STATUS_OPTIONS } from "@/lib/admin-types";
-import type { ProjetoDB, EquipeMembroDB, OpcaoApoioDB } from "@/lib/admin-types";
+import { ArrowLeft, Plus, Trash2, Save, Upload, Instagram, Video, Users, Film } from "lucide-react";
+import type { ProjetoDB, EquipeMembroDB, OpcaoApoioDB, CategoriaDB, StatusOptionDB, ReelDB } from "@/lib/admin-types";
+import { ReelsManager, type ReelDraft } from "@/components/admin/ReelsManager";
 
 export const Route = createFileRoute("/admin/projetos/$projetoId")({
   component: AdminProjetoEditor,
@@ -62,7 +62,22 @@ function AdminProjetoEditor() {
   // Support tiers
   const [opcoes, setOpcoes] = useState<OpcaoApoio[]>([]);
 
+  // Reels
+  const [reels, setReels] = useState<ReelDraft[]>([]);
+
+  // Dynamic categorias / status options
+  const [categoriasList, setCategoriasList] = useState<CategoriaDB[]>([]);
+  const [statusList, setStatusList] = useState<StatusOptionDB[]>([]);
+
   useEffect(() => {
+    (async () => {
+      const [{ data: cats }, { data: stats }] = await Promise.all([
+        supabase.from("categorias" as any).select("*").order("ordem"),
+        supabase.from("status_options" as any).select("*").order("ordem"),
+      ]);
+      setCategoriasList((cats as unknown as CategoriaDB[]) || []);
+      setStatusList((stats as unknown as StatusOptionDB[]) || []);
+    })();
     if (!isNew) loadProjeto();
   }, [projetoId]);
 
