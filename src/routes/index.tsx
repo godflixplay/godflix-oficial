@@ -2,15 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Carousel } from "@/components/Carousel";
-import { Heart, Users, Building2, Play, ChevronRight } from "lucide-react";
+import { HeroCarousel } from "@/components/HeroCarousel";
+import { Heart, Users, Building2, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   type Projeto,
   type Categoria,
-  categorias,
   formatCurrency,
   calcProgress,
 } from "@/lib/mock-data";
