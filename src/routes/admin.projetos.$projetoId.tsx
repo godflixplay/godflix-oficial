@@ -165,8 +165,12 @@ function AdminProjetoEditor() {
   };
 
   const handleSave = async () => {
-    if (!titulo || !slug) return;
+    if (!titulo || !slug) {
+      alert("Preencha pelo menos o título do projeto.");
+      return;
+    }
     setSaving(true);
+    console.log("[admin] Salvando projeto:", { isNew, titulo, slug });
 
     const projetoData = {
       slug,
