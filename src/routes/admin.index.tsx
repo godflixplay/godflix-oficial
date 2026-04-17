@@ -11,10 +11,20 @@ import { CategoriaManager } from "@/components/admin/CategoriaManager";
 import { StatusManager } from "@/components/admin/StatusManager";
 import { adminDashboardQuery } from "@/lib/queries";
 
+function AdminIndexPending() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="animate-pulse text-muted-foreground">Carregando dashboard...</div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/admin/")({
   // Client-only: dados do admin dependem de sessão autenticada (RLS),
   // que só existe no browser. SSR aqui causaria queries sem auth.
   ssr: false,
+  pendingComponent: AdminIndexPending,
+  pendingMs: 0,
   loader: ({ context: { queryClient } }) => {
     queryClient.ensureQueryData(adminDashboardQuery());
   },
