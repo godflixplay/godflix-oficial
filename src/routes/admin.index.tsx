@@ -12,6 +12,9 @@ import { StatusManager } from "@/components/admin/StatusManager";
 import { adminDashboardQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/admin/")({
+  // Client-only: dados do admin dependem de sessão autenticada (RLS),
+  // que só existe no browser. SSR aqui causaria queries sem auth.
+  ssr: false,
   loader: ({ context: { queryClient } }) => {
     queryClient.ensureQueryData(adminDashboardQuery());
   },
