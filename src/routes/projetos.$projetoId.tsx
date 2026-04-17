@@ -35,6 +35,7 @@ interface EquipeMembro {
   nome: string;
   papel: string;
   instagram_url: string | null;
+  foto_url: string | null;
 }
 
 interface OpcaoApoio {
@@ -231,16 +232,41 @@ function ProjetoContent() {
           {equipe.length > 0 && (
             <div>
               <h2 className="text-xl font-bold text-foreground mb-3">Equipe</h2>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {equipe.map((m) => (
-                  <Badge key={m.id} variant="secondary" className="gap-1.5">
-                    {m.papel ? `${m.papel}: ` : ""}{m.nome}
-                    {m.instagram_url && (
-                      <a href={m.instagram_url} target="_blank" rel="noreferrer" className="ml-1 hover:text-primary">
-                        <Instagram className="h-3 w-3" />
-                      </a>
-                    )}
-                  </Badge>
+                  <Card key={m.id} className="group overflow-hidden border-border bg-card/80">
+                    <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-muted to-card">
+                      {m.foto_url ? (
+                        <img
+                          src={m.foto_url}
+                          alt={m.nome}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-end bg-gradient-to-t from-background via-transparent to-muted p-4 text-lg font-semibold text-foreground">
+                          {m.nome}
+                        </div>
+                      )}
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <p className="text-lg font-semibold text-foreground">{m.nome}</p>
+                        {m.papel && <p className="text-sm text-muted-foreground">{m.papel}</p>}
+                        {m.instagram_url && (
+                          <a
+                            href={m.instagram_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1 text-xs text-foreground transition-colors hover:border-primary hover:text-primary"
+                          >
+                            <Instagram className="h-3 w-3" /> Instagram
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
                 ))}
               </div>
             </div>

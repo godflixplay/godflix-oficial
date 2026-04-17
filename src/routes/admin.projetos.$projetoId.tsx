@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,186 @@ interface OpcaoApoio {
   ordem: number;
 }
 
+interface ProjetoSnapshot {
+  titulo: string;
+  slug: string;
+  sinopse: string;
+  sinopseCompleta: string;
+  categoria: string;
+  imagemUrl: string;
+  videoUrl: string;
+  meta: number;
+  arrecadado: number;
+  apoiadores: number;
+  diasRestantes: number;
+  status: string;
+  destaque: boolean;
+  equipe: Array<{
+    nome: string;
+    papel: string;
+    instagram_url: string;
+    foto_url: string;
+  }>;
+  opcoes: Array<{
+    valor: number;
+    titulo: string;
+    descricao: string;
+    recompensas: string[];
+    ordem: number;
+  }>;
+  reels: Array<{
+    titulo: string;
+    video_url: string;
+    thumbnail_url: string;
+    tipo: "upload" | "link";
+    ordem: number;
+  }>;
+}
+
+interface ChangedField {
+  path: string;
+  label: string;
+  before: string;
+  after: string;
+}
+
+const formatDiffValue = (value: unknown) => {
+  if (Array.isArray(value)) return value.length ? value.join(" • ") : "—";
+  if (typeof value === "boolean") return value ? "Sim" : "Não";
+  if (value === null || value === undefined || value === "") return "—";
+  return String(value);
+};
+
+const createProjetoSnapshot = (input: {
+  titulo: string;
+  slug: string;
+  sinopse: string;
+  sinopseCompleta: string;
+  categoria: string;
+  imagemUrl: string;
+  videoUrl: string;
+  meta: number;
+  arrecadado: number;
+  apoiadores: number;
+  diasRestantes: number;
+  status: string;
+  destaque: boolean;
+  equipe: EquipeMembro[];
+  opcoes: OpcaoApoio[];
+  reels: ReelDraft[];
+}): ProjetoSnapshot => ({
+  titulo: input.titulo.trim(),
+  slug: input.slug.trim(),
+  sinopse: input.sinopse.trim(),
+  sinopseCompleta: input.sinopseCompleta.trim(),
+  categoria: input.categoria,
+  imagemUrl: input.imagemUrl.trim(),
+  videoUrl: input.videoUrl.trim(),
+  meta: input.meta,
+  arrecadado: input.arrecadado,
+  apoiadores: input.apoiadores,
+  diasRestantes: input.diasRestantes,
+  status: input.status,
+  destaque: input.destaque,
+  equipe: input.equipe.map((membro) => ({
+    nome: membro.nome.trim(),
+    papel: membro.papel.trim(),
+    instagram_url: normalizeInstagramUrl(membro.instagram_url),
+    foto_url: membro.foto_url?.trim() || "",
+  })),
+  opcoes: input.opcoes.map((opcao, index) => ({
+    valor: opcao.valor,
+    titulo: opcao.titulo.trim(),
+    descricao: opcao.descricao.trim(),
+    recompensas: opcao.recompensas.map((item) => item.trim()).filter(Boolean),
+    ordem: index,
+  })),
+  reels: input.reels.map((reel, index) => ({
+    titulo: reel.titulo.trim(),
+    video_url: reel.video_url.trim(),
+    thumbnail_url: reel.thumbnail_url?.trim() || "",
+    tipo: reel.tipo,
+    ordem: index,
+  })),
+});
+
+const getChangedFields = (before: ProjetoSnapshot | null, after: ProjetoSnapshot): ChangedField[] => {
+  if (!before) return [];
+
+  const changes: ChangedField[] = [];
+  const pushChange = (path: string, label: string, previous: unknown, next: unknown) => {
+    if (JSON.stringify(previous) === JSON.stringify(next)) return;
+    changes.push({
+      path,
+      label,
+      before: formatDiffValue(previous),
+      after: formatDiffValue(next),
+    });
+  };
+
+  [
+    ["titulo", "Título"],
+    ["slug", "Slug"],
+    ["sinopse", "Sinopse curta"],
+    ["sinopseCompleta", "Sinopse completa"],
+    ["categoria", "Categoria"],
+    ["imagemUrl", "Imagem de capa"],
+    ["videoUrl", "Vídeo promocional"],
+    ["meta", "Meta"],
+    ["arrecadado", "Arrecadado"],
+    ["apoiadores", "Apoiadores"],
+    ["diasRestantes", "Dias restantes"],
+    ["status", "Status"],
+    ["destaque", "Destaque"],
+  ].forEach(([key, label]) => {
+    pushChange(key, label, before[key as keyof ProjetoSnapshot], after[key as keyof ProjetoSnapshot]);
+  });
+
+  pushChange("equipe.length", "Total de integrantes", before.equipe.length, after.equipe.length);
+  Array.from({ length: Math.max(before.equipe.length, after.equipe.length) }).forEach((_, index) => {
+    const previous = before.equipe[index];
+    const next = after.equipe[index];
+    if (!previous || !next) {
+      pushChange(`equipe.${index}`, `Equipe ${index + 1}`, previous ? "Removido" : "Novo integrante", next ? next.nome || "Preenchimento iniciado" : "Removido");
+      return;
+    }
+    pushChange(`equipe.${index}.nome`, `Equipe ${index + 1} · Nome`, previous.nome, next.nome);
+    pushChange(`equipe.${index}.papel`, `Equipe ${index + 1} · Papel`, previous.papel, next.papel);
+    pushChange(`equipe.${index}.instagram_url`, `Equipe ${index + 1} · Instagram`, previous.instagram_url, next.instagram_url);
+    pushChange(`equipe.${index}.foto_url`, `Equipe ${index + 1} · Foto`, previous.foto_url, next.foto_url);
+  });
+
+  pushChange("opcoes.length", "Total de níveis", before.opcoes.length, after.opcoes.length);
+  Array.from({ length: Math.max(before.opcoes.length, after.opcoes.length) }).forEach((_, index) => {
+    const previous = before.opcoes[index];
+    const next = after.opcoes[index];
+    if (!previous || !next) {
+      pushChange(`opcoes.${index}`, `Nível ${index + 1}`, previous ? "Removido" : "Novo nível", next ? next.titulo || "Preenchimento iniciado" : "Removido");
+      return;
+    }
+    pushChange(`opcoes.${index}.titulo`, `Nível ${index + 1} · Título`, previous.titulo, next.titulo);
+    pushChange(`opcoes.${index}.valor`, `Nível ${index + 1} · Valor`, previous.valor, next.valor);
+    pushChange(`opcoes.${index}.descricao`, `Nível ${index + 1} · Descrição`, previous.descricao, next.descricao);
+    pushChange(`opcoes.${index}.recompensas`, `Nível ${index + 1} · Recompensas`, previous.recompensas, next.recompensas);
+  });
+
+  pushChange("reels.length", "Total de reels", before.reels.length, after.reels.length);
+  Array.from({ length: Math.max(before.reels.length, after.reels.length) }).forEach((_, index) => {
+    const previous = before.reels[index];
+    const next = after.reels[index];
+    if (!previous || !next) {
+      pushChange(`reels.${index}`, `Reel ${index + 1}`, previous ? "Removido" : "Novo reel", next ? next.titulo || next.video_url || "Preenchimento iniciado" : "Removido");
+      return;
+    }
+    pushChange(`reels.${index}.titulo`, `Reel ${index + 1} · Título`, previous.titulo, next.titulo);
+    pushChange(`reels.${index}.video_url`, `Reel ${index + 1} · Vídeo`, previous.video_url, next.video_url);
+    pushChange(`reels.${index}.thumbnail_url`, `Reel ${index + 1} · Thumbnail`, previous.thumbnail_url, next.thumbnail_url);
+    pushChange(`reels.${index}.tipo`, `Reel ${index + 1} · Tipo`, previous.tipo, next.tipo);
+  });
+
+  return changes;
+};
+
 function AdminProjetoEditor() {
   const { projetoId } = Route.useParams();
   const navigate = useNavigate();
@@ -91,8 +271,51 @@ function AdminProjetoEditor() {
   const [reels, setReels] = useState<ReelDraft[]>([]);
   const [categoriasList, setCategoriasList] = useState<CategoriaDB[]>([]);
   const [statusList, setStatusList] = useState<StatusOptionDB[]>([]);
+  const [baselineSnapshot, setBaselineSnapshot] = useState<ProjetoSnapshot>(() =>
+    createProjetoSnapshot({
+      titulo: "",
+      slug: "",
+      sinopse: "",
+      sinopseCompleta: "",
+      categoria: "Filme",
+      imagemUrl: "",
+      videoUrl: "",
+      meta: 0,
+      arrecadado: 0,
+      apoiadores: 0,
+      diasRestantes: 0,
+      status: "em_financiamento",
+      destaque: false,
+      equipe: [],
+      opcoes: [],
+      reels: [],
+    }),
+  );
 
   const hasPendingUploads = uploadingImage || uploadingTeamPhotoIndex !== null || pendingReelUploads > 0;
+  const currentSnapshot = useMemo(
+    () =>
+      createProjetoSnapshot({
+        titulo,
+        slug,
+        sinopse,
+        sinopseCompleta,
+        categoria,
+        imagemUrl,
+        videoUrl,
+        meta,
+        arrecadado,
+        apoiadores,
+        diasRestantes,
+        status,
+        destaque,
+        equipe,
+        opcoes,
+        reels,
+      }),
+    [titulo, slug, sinopse, sinopseCompleta, categoria, imagemUrl, videoUrl, meta, arrecadado, apoiadores, diasRestantes, status, destaque, equipe, opcoes, reels],
+  );
+  const changedFields = useMemo(() => getChangedFields(baselineSnapshot, currentSnapshot), [baselineSnapshot, currentSnapshot]);
 
   useEffect(() => {
     (async () => {
@@ -137,14 +360,52 @@ function AdminProjetoEditor() {
       ]);
 
       if (membros) {
-        setEquipe(
-          (membros as any as EquipeMembroDB[]).map((m) => ({
-            id: m.id,
-            nome: m.nome,
-            papel: m.papel,
-            instagram_url: m.instagram_url || "",
-            foto_url: (m as any).foto_url || "",
-          })),
+        const membrosState = (membros as any as EquipeMembroDB[]).map((m) => ({
+          id: m.id,
+          nome: m.nome,
+          papel: m.papel,
+          instagram_url: m.instagram_url || "",
+          foto_url: (m as any).foto_url || "",
+        }));
+        setEquipe(membrosState);
+
+        const opcoesState = ((opcoesData as any as OpcaoApoioDB[]) || []).map((o) => ({
+          id: o.id,
+          valor: o.valor,
+          titulo: o.titulo,
+          descricao: o.descricao,
+          recompensas: o.recompensas,
+          ordem: o.ordem,
+        }));
+
+        const reelsState = ((reelsData as unknown as ReelDB[]) || []).map((r) => ({
+          id: r.id,
+          tempId: r.id,
+          titulo: r.titulo,
+          video_url: r.video_url,
+          thumbnail_url: r.thumbnail_url || "",
+          tipo: r.tipo,
+        }));
+
+        setBaselineSnapshot(
+          createProjetoSnapshot({
+            titulo: p.titulo,
+            slug: p.slug,
+            sinopse: p.sinopse,
+            sinopseCompleta: p.sinopse_completa,
+            categoria: p.categoria,
+            imagemUrl: p.imagem_url,
+            videoUrl: p.video_url || "",
+            meta: p.meta,
+            arrecadado: p.arrecadado,
+            apoiadores: p.apoiadores,
+            diasRestantes: p.dias_restantes,
+            status: p.status,
+            destaque: p.destaque,
+            equipe: membrosState,
+            opcoes: opcoesState,
+            reels: reelsState,
+          }),
         );
       }
 
@@ -281,6 +542,7 @@ function AdminProjetoEditor() {
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["projetos", "home"] });
       queryClient.invalidateQueries({ queryKey: ["projeto"] });
+      setBaselineSnapshot(currentSnapshot);
       toast.success("Projeto salvo com sucesso.");
       navigate({ to: "/admin/projetos/$projetoId", params: { projetoId: result.id } });
     } catch (error) {
@@ -571,6 +833,39 @@ function AdminProjetoEditor() {
             <Button variant="outline" size="sm" onClick={addMembro} className="gap-1">
               <Plus className="h-4 w-4" /> Adicionar membro
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-lg">Diagnóstico antes de salvar</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {changedFields.length === 0
+                ? "Nenhuma alteração pendente no momento."
+                : `${changedFields.length} alteração(ões) detectada(s) entre o estado carregado e o formulário atual.`}
+            </p>
+
+            {changedFields.length > 0 && (
+              <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3">
+                {changedFields.map((change) => (
+                  <div key={change.path} className="rounded-lg border border-border bg-card/70 p-3">
+                    <p className="text-sm font-medium text-foreground">{change.label}</p>
+                    <div className="mt-2 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+                      <div className="rounded-md border border-border bg-background/60 p-2">
+                        <span className="mb-1 block text-[10px] uppercase tracking-[0.18em]">Antes</span>
+                        <span className="break-words text-foreground/80">{change.before}</span>
+                      </div>
+                      <div className="rounded-md border border-border bg-background/60 p-2">
+                        <span className="mb-1 block text-[10px] uppercase tracking-[0.18em]">Agora</span>
+                        <span className="break-words text-foreground">{change.after}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
