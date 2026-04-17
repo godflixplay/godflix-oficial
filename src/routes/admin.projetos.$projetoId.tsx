@@ -293,12 +293,25 @@ function AdminProjetoEditor() {
     }
   };
 
-  const addMembro = () => setEquipe([...equipe, { nome: "", papel: "", instagram_url: "", foto_url: "" }]);
-  const removeMembro = (i: number) => setEquipe(equipe.filter((_, idx) => idx !== i));
+  const addMembro = () => {
+    setEquipe((current) => [...current, { nome: "", papel: "", instagram_url: "", foto_url: "" }]);
+  };
+
+  const removeMembro = (i: number) => {
+    setEquipe((current) => current.filter((_, idx) => idx !== i));
+  };
+
   const updateMembro = (i: number, field: keyof EquipeMembro, value: string) => {
-    const updated = [...equipe];
-    (updated[i] as any)[field] = value;
-    setEquipe(updated);
+    setEquipe((current) =>
+      current.map((membro, idx) =>
+        idx === i
+          ? {
+              ...membro,
+              [field]: value,
+            }
+          : membro,
+      ),
+    );
   };
 
   const handleMembroPhotoUpload = async (index: number, file: File) => {
@@ -325,12 +338,25 @@ function AdminProjetoEditor() {
     }
   };
 
-  const addOpcao = () => setOpcoes([...opcoes, { valor: 0, titulo: "", descricao: "", recompensas: [], ordem: opcoes.length }]);
-  const removeOpcao = (i: number) => setOpcoes(opcoes.filter((_, idx) => idx !== i));
+  const addOpcao = () => {
+    setOpcoes((current) => [...current, { valor: 0, titulo: "", descricao: "", recompensas: [], ordem: current.length }]);
+  };
+
+  const removeOpcao = (i: number) => {
+    setOpcoes((current) => current.filter((_, idx) => idx !== i));
+  };
+
   const updateOpcao = (i: number, field: string, value: any) => {
-    const updated = [...opcoes];
-    (updated[i] as any)[field] = value;
-    setOpcoes(updated);
+    setOpcoes((current) =>
+      current.map((opcao, idx) =>
+        idx === i
+          ? {
+              ...opcao,
+              [field]: value,
+            }
+          : opcao,
+      ),
+    );
   };
 
   if (loading) {
