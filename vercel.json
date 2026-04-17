@@ -1,8 +1,8 @@
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist/client",
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/api/index" }
-  ]
+import { createServer } from 'node:http';
+import handler from '../dist/server/server.js';
+
+export default async function(req, res) {
+  return handler.fetch(req, {
+    env: process.env
+  });
 }
