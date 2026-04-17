@@ -15,20 +15,71 @@ function AdminLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
+    const checkAdminRole = async (userId: string): Promise<boolean> => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles" as any)
+          .select("role")
+          .eq("user_id", userId)
+          .eq("role", "admin")
+          .maybeSingle();
+        if (error) {
+          console.error("[admin] erro ao buscar role:", error);
+          return false;
+        }
+        return !!data;
+      } catch (err) {
+        console.error("[admin] exceção ao buscar role:", err);
+        return false;
+      }
+    };
+
+    const resolveSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!active) return;
+
+        const currentUser = data.session?.user ?? null;
+        setUser(currentUser);
+
+        if (currentUser) {
+          const admin = await checkAdminRole(currentUser.id);
+          if (active) setIsAdmin(admin);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (err: any) {
+        console.error("[admin] erro ao resolver sessão:", err);
+        if (active) setAuthError(err?.message || "Falha ao verificar autenticação.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    // Fallback de segurança: nunca deixe a tela travada além de 8s
+    const safetyTimeout = setTimeout(() => {
+      if (active && loading) {
+        console.warn("[admin] timeout de auth — liberando tela");
+        setLoading(false);
+      }
+    }, 8000);
+
+    resolveSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!active) return;
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
-          const { data } = await supabase
-            .from("user_roles" as any)
-            .select("role")
-            .eq("user_id", currentUser.id)
-            .eq("role", "admin")
-            .maybeSingle();
-          setIsAdmin(!!data);
+          const admin = await checkAdminRole(currentUser.id);
+          if (active) setIsAdmin(admin);
         } else {
           setIsAdmin(false);
         }
@@ -36,23 +87,27 @@ function AdminLayout() {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if (currentUser) {
-        const { data } = await supabase
-          .from("user_roles" as any)
-          .select("role")
-          .eq("user_id", currentUser.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        setIsAdmin(!!data);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (authError && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar</h1>
+          <p className="text-muted-foreground mb-4 text-sm">{authError}</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
