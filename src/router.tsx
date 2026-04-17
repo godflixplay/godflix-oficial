@@ -1,6 +1,15 @@
+import * as React from "react";
 import { createRouter, useRouter } from "@tanstack/react-router";
 import { QueryClient } from "@tanstack/react-query";
 import { routeTree } from "./routeTree.gen";
+
+// Garante que `React` esteja disponível como global em runtime.
+// O entry gerado pelo TanStack Start chama `React.createElement(...)` durante
+// a hidratação; sem este shim o bundle de produção quebra com
+// "React is not defined" em browsers/edge runtimes.
+if (typeof globalThis !== "undefined" && !(globalThis as any).React) {
+  (globalThis as any).React = React;
+}
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
