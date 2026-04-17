@@ -8,6 +8,9 @@ import { LogOut, Film, LayoutDashboard } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/admin")({
+  // Admin é client-only: evita mismatch de hidratação e loops de "Carregando..."
+  // causados por sessão Supabase só existir no browser (localStorage).
+  ssr: false,
   component: AdminLayout,
 });
 

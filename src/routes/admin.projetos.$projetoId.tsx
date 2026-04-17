@@ -15,6 +15,7 @@ import { ReelsManager, type ReelDraft } from "@/components/admin/ReelsManager";
 import { saveProjetoAdmin } from "@/lib/admin-save.functions";
 
 export const Route = createFileRoute("/admin/projetos/$projetoId")({
+  ssr: false,
   component: AdminProjetoEditor,
 });
 
