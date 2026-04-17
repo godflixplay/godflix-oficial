@@ -40,6 +40,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "description", content: "Plataforma de financiamento e produção de conteúdo audiovisual cristão." },
       { name: "author", content: "Godflix" },
       { name: "twitter:card", content: "summary" },
+      { property: "og:title", content: "Godflix — Produção Audiovisual Cristã" },
+      { name: "twitter:title", content: "Godflix — Produção Audiovisual Cristã" },
+      { property: "og:description", content: "Plataforma de financiamento e produção de conteúdo audiovisual cristão." },
+      { name: "twitter:description", content: "Plataforma de financiamento e produção de conteúdo audiovisual cristão." },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
