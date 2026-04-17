@@ -7,21 +7,12 @@ import { Label } from "@/components/ui/label";
 import { LogOut, Film, LayoutDashboard } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
-function AdminLoadingScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="animate-pulse text-muted-foreground">Carregando admin...</div>
-    </div>
-  );
-}
-
 export const Route = createFileRoute("/admin")({
-  // Admin é client-only: evita mismatch de hidratação e loops de "Carregando..."
-  // causados por sessão Supabase só existir no browser (localStorage).
+  // Admin é client-only: sessão Supabase só existe no browser (localStorage).
+  // NÃO usar pendingComponent aqui — combinar ssr:false + pendingComponent
+  // trava o router em estado "pending" no HTML serializado e a hidratação
+  // nunca avança para o component. AdminLayout tem seu próprio loading interno.
   ssr: false,
-  // Sem SSR, o body fica vazio até o JS hidratar — pendingComponent evita tela preta.
-  pendingComponent: AdminLoadingScreen,
-  pendingMs: 0,
   component: AdminLayout,
 });
 

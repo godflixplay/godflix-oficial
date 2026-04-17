@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as EnviarProjetoRouteImport } from './routes/enviar-projeto'
 import { Route as EmpresasRouteImport } from './routes/empresas'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -21,6 +22,11 @@ import { Route as AdminProjetosProjetoIdRouteImport } from './routes/admin.proje
 const MembrosRoute = MembrosRouteImport.update({
   id: '/membros',
   path: '/membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnviarProjetoRoute = EnviarProjetoRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/empresas': typeof EmpresasRoute
   '/enviar-projeto': typeof EnviarProjetoRoute
+  '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/empresas': typeof EmpresasRoute
   '/enviar-projeto': typeof EnviarProjetoRoute
+  '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin': typeof AdminIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/empresas': typeof EmpresasRoute
   '/enviar-projeto': typeof EnviarProjetoRoute
+  '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/empresas'
     | '/enviar-projeto'
+    | '/login'
     | '/membros'
     | '/projetos/$projetoId'
     | '/admin/'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/empresas'
     | '/enviar-projeto'
+    | '/login'
     | '/membros'
     | '/projetos/$projetoId'
     | '/admin'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/empresas'
     | '/enviar-projeto'
+    | '/login'
     | '/membros'
     | '/projetos/$projetoId'
     | '/admin/'
@@ -126,6 +138,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   EmpresasRoute: typeof EmpresasRoute
   EnviarProjetoRoute: typeof EnviarProjetoRoute
+  LoginRoute: typeof LoginRoute
   MembrosRoute: typeof MembrosRoute
   ProjetosProjetoIdRoute: typeof ProjetosProjetoIdRoute
 }
@@ -137,6 +150,13 @@ declare module '@tanstack/react-router' {
       path: '/membros'
       fullPath: '/membros'
       preLoaderRoute: typeof MembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/enviar-projeto': {
@@ -208,6 +228,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   EmpresasRoute: EmpresasRoute,
   EnviarProjetoRoute: EnviarProjetoRoute,
+  LoginRoute: LoginRoute,
   MembrosRoute: MembrosRoute,
   ProjetosProjetoIdRoute: ProjetosProjetoIdRoute,
 }

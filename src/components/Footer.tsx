@@ -40,9 +40,17 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Godflix. Todos os direitos reservados.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Feito com fé e propósito 🙏
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-xs text-muted-foreground">
+              Feito com fé e propósito 🙏
+            </p>
+            <Link
+              to="/admin"
+              className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
+            >
+              Admin
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
