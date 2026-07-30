@@ -42,7 +42,7 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-4">
             <p className="text-xs text-muted-foreground">
-              Feito com fé e propósito 🙏
+              Feito com fé e propósito 🙏✨
             </p>
             <Link
               to="/admin"
