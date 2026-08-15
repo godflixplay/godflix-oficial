@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -749,11 +750,11 @@ function AdminProjetoEditor() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Meta (R$)</Label>
-                <Input type="number" value={meta} onChange={(e) => setMeta(Number(e.target.value))} />
+                <CurrencyInput value={meta} onChange={setMeta} />
               </div>
               <div className="space-y-2">
                 <Label>Arrecadado (R$)</Label>
-                <Input type="number" value={arrecadado} onChange={(e) => setArrecadado(Number(e.target.value))} />
+                <CurrencyInput value={arrecadado} onChange={setArrecadado} />
               </div>
               <div className="space-y-2">
                 <Label>Apoiadores</Label>
@@ -890,7 +891,7 @@ function AdminProjetoEditor() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Valor (R$)</Label>
-                    <Input type="number" value={o.valor} onChange={(e) => updateOpcao(i, "valor", Number(e.target.value))} />
+                    <CurrencyInput value={o.valor} onChange={(v) => updateOpcao(i, "valor", v)} />
                   </div>
                 </div>
                 <div className="space-y-1">
