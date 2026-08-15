@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Film, LayoutDashboard } from "lucide-react";
+import { LogOut, Film, LayoutDashboard, Newspaper } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 export const Route = createFileRoute("/admin")({
@@ -160,6 +160,13 @@ function AdminLayout() {
             activeOptions={{ exact: true }}
           >
             <LayoutDashboard className="h-4 w-4" /> Projetos
+          </Link>
+          <Link
+            to="/admin/conteudo"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            activeProps={{ className: "text-sm text-primary font-medium flex items-center gap-1" }}
+          >
+            <Newspaper className="h-4 w-4" /> Conteúdo
           </Link>
         </nav>
 

@@ -15,9 +15,13 @@ import { Route as EnviarProjetoRouteImport } from './routes/enviar-projeto'
 import { Route as EmpresasRouteImport } from './routes/empresas'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConteudoIndexRouteImport } from './routes/conteudo.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ProjetosProjetoIdRouteImport } from './routes/projetos.$projetoId'
+import { Route as ConteudoSlugRouteImport } from './routes/conteudo.$slug'
+import { Route as AdminConteudoIndexRouteImport } from './routes/admin.conteudo.index'
 import { Route as AdminProjetosProjetoIdRouteImport } from './routes/admin.projetos.$projetoId'
+import { Route as AdminConteudoPostIdRouteImport } from './routes/admin.conteudo.$postId'
 
 const MembrosRoute = MembrosRouteImport.update({
   id: '/membros',
@@ -49,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConteudoIndexRoute = ConteudoIndexRouteImport.update({
+  id: '/conteudo/',
+  path: '/conteudo/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -59,9 +68,24 @@ const ProjetosProjetoIdRoute = ProjetosProjetoIdRouteImport.update({
   path: '/projetos/$projetoId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConteudoSlugRoute = ConteudoSlugRouteImport.update({
+  id: '/conteudo/$slug',
+  path: '/conteudo/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminConteudoIndexRoute = AdminConteudoIndexRouteImport.update({
+  id: '/conteudo/',
+  path: '/conteudo/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProjetosProjetoIdRoute = AdminProjetosProjetoIdRouteImport.update({
   id: '/projetos/$projetoId',
   path: '/projetos/$projetoId',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConteudoPostIdRoute = AdminConteudoPostIdRouteImport.update({
+  id: '/conteudo/$postId',
+  path: '/conteudo/$postId',
   getParentRoute: () => AdminRoute,
 } as any)
 
@@ -72,9 +96,13 @@ export interface FileRoutesByFullPath {
   '/enviar-projeto': typeof EnviarProjetoRoute
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
+  '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/conteudo/': typeof ConteudoIndexRoute
+  '/admin/conteudo/$postId': typeof AdminConteudoPostIdRoute
   '/admin/projetos/$projetoId': typeof AdminProjetosProjetoIdRoute
+  '/admin/conteudo/': typeof AdminConteudoIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,9 +110,13 @@ export interface FileRoutesByTo {
   '/enviar-projeto': typeof EnviarProjetoRoute
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
+  '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin': typeof AdminIndexRoute
+  '/conteudo': typeof ConteudoIndexRoute
+  '/admin/conteudo/$postId': typeof AdminConteudoPostIdRoute
   '/admin/projetos/$projetoId': typeof AdminProjetosProjetoIdRoute
+  '/admin/conteudo': typeof AdminConteudoIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -94,9 +126,13 @@ export interface FileRoutesById {
   '/enviar-projeto': typeof EnviarProjetoRoute
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
+  '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/conteudo/': typeof ConteudoIndexRoute
+  '/admin/conteudo/$postId': typeof AdminConteudoPostIdRoute
   '/admin/projetos/$projetoId': typeof AdminProjetosProjetoIdRoute
+  '/admin/conteudo/': typeof AdminConteudoIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,9 +143,13 @@ export interface FileRouteTypes {
     | '/enviar-projeto'
     | '/login'
     | '/membros'
+    | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin/'
+    | '/conteudo/'
+    | '/admin/conteudo/$postId'
     | '/admin/projetos/$projetoId'
+    | '/admin/conteudo/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,9 +157,13 @@ export interface FileRouteTypes {
     | '/enviar-projeto'
     | '/login'
     | '/membros'
+    | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin'
+    | '/conteudo'
+    | '/admin/conteudo/$postId'
     | '/admin/projetos/$projetoId'
+    | '/admin/conteudo'
   id:
     | '__root__'
     | '/'
@@ -128,9 +172,13 @@ export interface FileRouteTypes {
     | '/enviar-projeto'
     | '/login'
     | '/membros'
+    | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin/'
+    | '/conteudo/'
+    | '/admin/conteudo/$postId'
     | '/admin/projetos/$projetoId'
+    | '/admin/conteudo/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -140,7 +188,9 @@ export interface RootRouteChildren {
   EnviarProjetoRoute: typeof EnviarProjetoRoute
   LoginRoute: typeof LoginRoute
   MembrosRoute: typeof MembrosRoute
+  ConteudoSlugRoute: typeof ConteudoSlugRoute
   ProjetosProjetoIdRoute: typeof ProjetosProjetoIdRoute
+  ConteudoIndexRoute: typeof ConteudoIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -187,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conteudo/': {
+      id: '/conteudo/'
+      path: '/conteudo'
+      fullPath: '/conteudo/'
+      preLoaderRoute: typeof ConteudoIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -201,6 +258,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjetosProjetoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conteudo/$slug': {
+      id: '/conteudo/$slug'
+      path: '/conteudo/$slug'
+      fullPath: '/conteudo/$slug'
+      preLoaderRoute: typeof ConteudoSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/conteudo/': {
+      id: '/admin/conteudo/'
+      path: '/conteudo'
+      fullPath: '/admin/conteudo/'
+      preLoaderRoute: typeof AdminConteudoIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/projetos/$projetoId': {
       id: '/admin/projetos/$projetoId'
       path: '/projetos/$projetoId'
@@ -208,17 +279,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProjetosProjetoIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/conteudo/$postId': {
+      id: '/admin/conteudo/$postId'
+      path: '/conteudo/$postId'
+      fullPath: '/admin/conteudo/$postId'
+      preLoaderRoute: typeof AdminConteudoPostIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminConteudoPostIdRoute: typeof AdminConteudoPostIdRoute
   AdminProjetosProjetoIdRoute: typeof AdminProjetosProjetoIdRoute
+  AdminConteudoIndexRoute: typeof AdminConteudoIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminConteudoPostIdRoute: AdminConteudoPostIdRoute,
   AdminProjetosProjetoIdRoute: AdminProjetosProjetoIdRoute,
+  AdminConteudoIndexRoute: AdminConteudoIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -230,7 +312,9 @@ const rootRouteChildren: RootRouteChildren = {
   EnviarProjetoRoute: EnviarProjetoRoute,
   LoginRoute: LoginRoute,
   MembrosRoute: MembrosRoute,
+  ConteudoSlugRoute: ConteudoSlugRoute,
   ProjetosProjetoIdRoute: ProjetosProjetoIdRoute,
+  ConteudoIndexRoute: ConteudoIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
