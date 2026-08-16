@@ -64,6 +64,22 @@ function Bloco({ bloco }: { bloco: BlocoConteudo }) {
         </div>
       );
 
+    case "video":
+      return (
+        <figure className="my-8">
+          <div className="aspect-video overflow-hidden rounded-xl border border-border bg-surface">
+            <iframe
+              className="h-full w-full"
+              src={`https://www.youtube.com/embed/${bloco.videoId}${bloco.inicio ? `?start=${bloco.inicio}` : ""}`}
+              title={bloco.legenda || "Vídeo"}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          {bloco.legenda && <figcaption className="mt-2 text-sm leading-snug text-muted-foreground">{bloco.legenda}</figcaption>}
+        </figure>
+      );
+
     case "lista":
       return (
         <ol className="mb-6 flex flex-col gap-4">

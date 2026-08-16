@@ -49,6 +49,13 @@ export interface BlocoLista {
   itens: BlocoListaItem[];
 }
 
+export interface BlocoVideo {
+  tipo: "video";
+  videoId: string;
+  inicio: number;
+  legenda: string;
+}
+
 export type BlocoConteudo =
   | BlocoParagrafo
   | BlocoTitulo
@@ -56,7 +63,8 @@ export type BlocoConteudo =
   | BlocoCallout
   | BlocoImagem
   | BlocoGaleria
-  | BlocoLista;
+  | BlocoLista
+  | BlocoVideo;
 
 export interface BlogPostDB {
   id: string;

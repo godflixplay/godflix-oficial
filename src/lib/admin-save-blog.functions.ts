@@ -27,6 +27,12 @@ const blocoListaSchema = z.object({
   tipo: z.literal("lista"),
   itens: z.array(z.object({ titulo: z.string().trim().max(200), texto: z.string().trim().max(1000) })).max(20),
 });
+const blocoVideoSchema = z.object({
+  tipo: z.literal("video"),
+  videoId: z.string().trim().min(1).max(50),
+  inicio: z.number().int().min(0).max(999999),
+  legenda: z.string().trim().max(500),
+});
 
 const blocoSchema = z.discriminatedUnion("tipo", [
   blocoParagrafoSchema,
@@ -36,6 +42,7 @@ const blocoSchema = z.discriminatedUnion("tipo", [
   blocoImagemSchema,
   blocoGaleriaSchema,
   blocoListaSchema,
+  blocoVideoSchema,
 ]);
 
 const blogPostSchema = z.object({

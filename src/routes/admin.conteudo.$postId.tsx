@@ -26,6 +26,7 @@ const TIPO_LABELS: Record<BlocoConteudo["tipo"], string> = {
   imagem: "Imagem",
   galeria: "Galeria (2 imagens)",
   lista: "Lista numerada",
+  video: "Vídeo (YouTube)",
 };
 
 const novoBloco = (tipo: BlocoConteudo["tipo"]): BlocoConteudo => {
@@ -44,6 +45,8 @@ const novoBloco = (tipo: BlocoConteudo["tipo"]): BlocoConteudo => {
       return { tipo, itens: [{ url: "", legenda: "" }, { url: "", legenda: "" }] };
     case "lista":
       return { tipo, itens: [{ titulo: "", texto: "" }] };
+    case "video":
+      return { tipo, videoId: "", inicio: 0, legenda: "" };
   }
 };
 
@@ -512,6 +515,40 @@ function BlocoEditor({
               />
             </div>
           ))}
+        </div>
+      )}
+
+      {bloco.tipo === "video" && (
+        <div className="space-y-2">
+          <Input
+            value={bloco.videoId}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              const match = raw.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{6,})/);
+              onChange({ ...bloco, videoId: match ? match[1] : raw });
+            }}
+            placeholder="ID do vídeo do YouTube ou cole a URL completa"
+          />
+          <div className="flex items-center gap-2">
+            <Label className="text-xs shrink-0">Início (segundos)</Label>
+            <Input
+              type="number"
+              value={bloco.inicio}
+              onChange={(e) => onChange({ ...bloco, inicio: Number(e.target.value) })}
+              className="w-28"
+            />
+          </div>
+          <Input value={bloco.legenda} onChange={(e) => onChange({ ...bloco, legenda: e.target.value })} placeholder="Legenda (ex: Trailer oficial — Universal Pictures Brasil)" />
+          {bloco.videoId && (
+            <div className="aspect-video w-full max-w-sm rounded-md overflow-hidden border border-border">
+              <iframe
+                className="h-full w-full"
+                src={`https://www.youtube.com/embed/${bloco.videoId}${bloco.inicio ? `?start=${bloco.inicio}` : ""}`}
+                title="preview"
+                allowFullScreen
+              />
+            </div>
+          )}
         </div>
       )}
 
