@@ -18,8 +18,6 @@ export const Route = createFileRoute("/admin/conteudo/$postId")({
   component: AdminPostEditor,
 });
 
-const CATEGORIAS_DISPONIVEIS = ["Família", "Filhos", "Juventude", "Fé", "Cultura", "Relacionamentos", "Educação", "Sociedade"];
-
 const TIPO_LABELS: Record<BlocoConteudo["tipo"], string> = {
   paragrafo: "Parágrafo",
   titulo: "Título de seção",
@@ -80,6 +78,14 @@ function AdminPostEditor() {
   const [tempoLeitura, setTempoLeitura] = useState(5);
   const [publicado, setPublicado] = useState(false);
   const [blocos, setBlocos] = useState<BlocoConteudo[]>([]);
+  const [categoriasDisponiveis, setCategoriasDisponiveis] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("blog_categorias" as any).select("nome").order("ordem");
+      setCategoriasDisponiveis(((data as any[]) ?? []).map((c) => c.nome));
+    })();
+  }, []);
 
   useEffect(() => {
     if (isNew) return;
@@ -233,7 +239,7 @@ function AdminPostEditor() {
             <div className="space-y-2">
               <Label>Categorias</Label>
               <div className="flex flex-wrap gap-2">
-                {CATEGORIAS_DISPONIVEIS.map((cat) => (
+                {categoriasDisponiveis.map((cat) => (
                   <button
                     key={cat}
                     type="button"
