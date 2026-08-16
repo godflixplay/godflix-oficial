@@ -8,10 +8,10 @@ export function Header() {
 
   const navLinks = [
     { to: "/", label: "Início" },
+    { to: "/producoes", label: "Produções" },
     { to: "/conteudo", label: "Conteúdo" },
     { to: "/membros", label: "Seja Membro" },
     { to: "/empresas", label: "Para Empresas" },
-    { to: "/enviar-projeto", label: "Enviar Projeto" },
   ] as const;
 
   return (

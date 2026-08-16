@@ -2,19 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Carousel } from "@/components/Carousel";
-import { HeroCarousel } from "@/components/HeroCarousel";
-import { Heart, Users, Building2, ChevronRight, ArrowRight, Clock } from "lucide-react";
-import { type Projeto, type Categoria } from "@/lib/mock-data";
+import { Heart, Users, Building2, ChevronRight, ArrowRight, Clock, Play } from "lucide-react";
+import { type Projeto, type Categoria, formatCurrency, calcProgress } from "@/lib/mock-data";
 import { projetosHomeQuery, blogRecentesQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Godflix — Produção Audiovisual Cristã" },
-      { name: "description", content: "Financie e apoie projetos audiovisuais cristãos. Filmes, séries, documentários e animações que transformam vidas." },
-      { property: "og:title", content: "Godflix — Produção Audiovisual Cristã" },
-      { property: "og:description", content: "Financie e apoie projetos audiovisuais cristãos que transformam vidas." },
+      { title: "Godflix — Um movimento para impactar sua família" },
+      { name: "description", content: "A Godflix é o movimento de cristãos que vai financiar e produzir conteúdo audiovisual original para edificar sua casa." },
+      { property: "og:title", content: "Godflix — Um movimento para impactar sua família" },
+      { property: "og:description", content: "A Godflix é o movimento de cristãos que vai financiar e produzir conteúdo audiovisual original para edificar sua casa." },
     ],
   }),
   loader: ({ context: { queryClient } }) => {
@@ -59,8 +57,6 @@ function HomeContent() {
     destaque: p.destaque,
     ordemDestaque: p.ordem_destaque ?? 0,
   }));
-  const categorias: Categoria[] = data.categorias as Categoria[];
-
   if (projetos.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
@@ -80,11 +76,6 @@ function HomeContent() {
     .sort((a, b) => (a.ordemDestaque ?? 0) - (b.ordemDestaque ?? 0));
   const destaquesHero = destaques.length > 0 ? destaques : [projetos[0]];
 
-  const categoriasOrdenadas = categorias.length > 0 ? categorias : Array.from(new Set(projetos.map((p) => p.categoria)));
-  const categoriasComProjetos = categoriasOrdenadas
-    .map((cat) => ({ categoria: cat, projetos: projetos.filter((p) => p.categoria === cat) }))
-    .filter((c) => c.projetos.length > 0);
-
   return (
     <div className="min-h-screen">
       {/* Hero de missão */}
@@ -94,36 +85,28 @@ function HomeContent() {
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary mb-5">
             Produção audiovisual cristã
           </p>
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground text-balance leading-tight">
-            Histórias que fortalecem a fé.
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground text-balance leading-tight max-w-3xl mx-auto">
+            Estamos começando um movimento pra impactar a sua família.
             <br />
-            <span className="text-muted-foreground">Conteúdos que protegem a família.</span>
+            <span className="text-muted-foreground">Vamos produzir conteúdos originais cristãos que vão edificar a sua casa.</span>
           </h1>
           <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            A Godflix financia, produz e distribui filmes, séries e conteúdo que sua família pode assistir com
-            identificação — e sua audiência ajuda a decidir o que sai do papel.
+            Um movimento de cristãos dispostos a apoiar desde a fundação — antes mesmo da primeira câmera ligar.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
             <Button asChild variant="outline" size="lg">
-              <a href="#como-funciona">Conheça a Godflix</a>
+              <a href="#como-funciona">Como funciona</a>
             </Button>
             <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <a href="#projetos">Conheça os projetos</a>
+              <a href="#como-funciona">Quero fazer parte</a>
             </Button>
           </div>
         </div>
       </section>
 
-      <HeroCarousel destaques={destaquesHero} />
+      <ProjetoDestaqueSection projeto={destaquesHero[0]} />
 
-      {/* Carousels */}
-      <div id="projetos" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-12 scroll-mt-20">
-        <Carousel titulo="Todos os Projetos" projetos={projetos} />
-
-        {categoriasComProjetos.map(({ categoria, projetos: projs }) => (
-          <Carousel key={categoria} titulo={categoria + "s"} projetos={projs} />
-        ))}
-      </div>
+      <PorQueSection />
 
       <ConteudoSection />
 
@@ -188,6 +171,94 @@ function HomeContent() {
         </div>
       </section>
     </div>
+  );
+}
+
+function ProjetoDestaqueSection({ projeto }: { projeto: Projeto }) {
+  const progresso = calcProgress(projeto.arrecadado, projeto.meta);
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-14 items-center">
+        <Link
+          to="/projetos/$projetoId"
+          params={{ projetoId: projeto.id }}
+          className="group relative block aspect-video rounded-2xl overflow-hidden border border-border bg-surface"
+        >
+          <img
+            src={projeto.imagem}
+            alt={projeto.titulo}
+            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+          <div className="absolute left-4 bottom-4 flex items-center gap-2 rounded-full bg-background/80 backdrop-blur px-3 py-1.5 border border-border">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Play className="h-3 w-3 fill-current" />
+            </span>
+            <span className="text-xs font-semibold text-foreground">Conheça o projeto</span>
+          </div>
+        </Link>
+
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-3">Projeto em destaque</p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground mb-4 text-balance">{projeto.titulo}</h2>
+          <p className="text-muted-foreground mb-6 max-w-md">{projeto.sinopse}</p>
+
+          <div className="mb-6">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-lg font-extrabold text-foreground">{formatCurrency(projeto.arrecadado)}</span>
+              <span className="text-sm text-muted-foreground">meta de {formatCurrency(projeto.meta)}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${progresso}%` }} />
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+              <span>{progresso}% financiado</span>
+              <span>{projeto.apoiadores} apoiadores</span>
+            </div>
+          </div>
+
+          <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
+            <Link to="/projetos/$projetoId" params={{ projetoId: projeto.id }}>
+              Ver o projeto <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PorQueSection() {
+  return (
+    <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 text-center">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-3">Por que a Godflix existe</p>
+      <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-balance mb-10">
+        Conteúdo de qualidade não devia ser raro pra quem busca edificar a fé
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs font-bold text-primary tracking-wide mb-3">01</p>
+          <h3 className="font-bold text-foreground mb-2">Fé sem clichê</h3>
+          <p className="text-sm text-muted-foreground">
+            Produções com roteiro, direção e fotografia à altura de qualquer streaming — sem simplificar a mensagem.
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs font-bold text-primary tracking-wide mb-3">02</p>
+          <h3 className="font-bold text-foreground mb-2">Família no centro</h3>
+          <p className="text-sm text-muted-foreground">
+            Conteúdo pensado pra ser assistido junto — de crianças a avós — sem escolher entre valores e qualidade.
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-xs font-bold text-primary tracking-wide mb-3">03</p>
+          <h3 className="font-bold text-foreground mb-2">Audiência como fundadora</h3>
+          <p className="text-sm text-muted-foreground">
+            Quem apoia desde o início acompanha o andamento, participa das decisões e é citado nos créditos.
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProducoesRouteImport } from './routes/producoes'
 import { Route as MembrosRouteImport } from './routes/membros'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EnviarProjetoRouteImport } from './routes/enviar-projeto'
@@ -23,6 +24,11 @@ import { Route as AdminConteudoIndexRouteImport } from './routes/admin.conteudo.
 import { Route as AdminProjetosProjetoIdRouteImport } from './routes/admin.projetos.$projetoId'
 import { Route as AdminConteudoPostIdRouteImport } from './routes/admin.conteudo.$postId'
 
+const ProducoesRoute = ProducoesRouteImport.update({
+  id: '/producoes',
+  path: '/producoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MembrosRoute = MembrosRouteImport.update({
   id: '/membros',
   path: '/membros',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/enviar-projeto': typeof EnviarProjetoRoute
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
+  '/producoes': typeof ProducoesRoute
   '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/enviar-projeto': typeof EnviarProjetoRoute
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
+  '/producoes': typeof ProducoesRoute
   '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin': typeof AdminIndexRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/enviar-projeto': typeof EnviarProjetoRoute
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
+  '/producoes': typeof ProducoesRoute
   '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/enviar-projeto'
     | '/login'
     | '/membros'
+    | '/producoes'
     | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin/'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/enviar-projeto'
     | '/login'
     | '/membros'
+    | '/producoes'
     | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/enviar-projeto'
     | '/login'
     | '/membros'
+    | '/producoes'
     | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin/'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   EnviarProjetoRoute: typeof EnviarProjetoRoute
   LoginRoute: typeof LoginRoute
   MembrosRoute: typeof MembrosRoute
+  ProducoesRoute: typeof ProducoesRoute
   ConteudoSlugRoute: typeof ConteudoSlugRoute
   ProjetosProjetoIdRoute: typeof ProjetosProjetoIdRoute
   ConteudoIndexRoute: typeof ConteudoIndexRoute
@@ -195,6 +208,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/producoes': {
+      id: '/producoes'
+      path: '/producoes'
+      fullPath: '/producoes'
+      preLoaderRoute: typeof ProducoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/membros': {
       id: '/membros'
       path: '/membros'
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnviarProjetoRoute: EnviarProjetoRoute,
   LoginRoute: LoginRoute,
   MembrosRoute: MembrosRoute,
+  ProducoesRoute: ProducoesRoute,
   ConteudoSlugRoute: ConteudoSlugRoute,
   ProjetosProjetoIdRoute: ProjetosProjetoIdRoute,
   ConteudoIndexRoute: ConteudoIndexRoute,
