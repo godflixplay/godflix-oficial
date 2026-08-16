@@ -2,6 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/client",
   "rewrites": [
-    { "source": "/((?!assets/|favicon.ico|robots.txt).*)", "destination": "/api/index" }
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/((?!assets/|favicon.ico|robots.txt|sitemap.xml).*)", "destination": "/api/index" }
   ]
 }
