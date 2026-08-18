@@ -49,6 +49,8 @@ export interface EquipeMembroDB {
   nome: string;
   papel: string;
   instagram_url: string | null;
+  foto_url: string | null;
+  curriculo: string | null;
   created_at: string;
 }
 

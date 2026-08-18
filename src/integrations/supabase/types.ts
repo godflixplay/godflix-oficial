@@ -38,6 +38,7 @@ export type Database = {
       equipe_membros: {
         Row: {
           created_at: string
+          curriculo: string | null
           foto_url: string | null
           id: string
           instagram_url: string | null
@@ -47,6 +48,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          curriculo?: string | null
           foto_url?: string | null
           id?: string
           instagram_url?: string | null
@@ -56,6 +58,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          curriculo?: string | null
           foto_url?: string | null
           id?: string
           instagram_url?: string | null

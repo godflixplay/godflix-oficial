@@ -26,6 +26,7 @@ interface EquipeMembro {
   papel: string;
   instagram_url: string;
   foto_url?: string;
+  curriculo?: string;
 }
 
 const normalizeInstagramUrl = (value: string) => {
@@ -80,6 +81,7 @@ interface ProjetoSnapshot {
     papel: string;
     instagram_url: string;
     foto_url: string;
+    curriculo: string;
   }>;
   opcoes: Array<{
     valor: number;
@@ -147,6 +149,7 @@ const createProjetoSnapshot = (input: {
     papel: membro.papel.trim(),
     instagram_url: normalizeInstagramUrl(membro.instagram_url),
     foto_url: membro.foto_url?.trim() || "",
+    curriculo: membro.curriculo?.trim() || "",
   })),
   opcoes: input.opcoes.map((opcao, index) => ({
     valor: opcao.valor,
@@ -208,6 +211,7 @@ const getChangedFields = (before: ProjetoSnapshot | null, after: ProjetoSnapshot
     pushChange(`equipe.${index}.papel`, `Equipe ${index + 1} · Papel`, previous.papel, next.papel);
     pushChange(`equipe.${index}.instagram_url`, `Equipe ${index + 1} · Instagram`, previous.instagram_url, next.instagram_url);
     pushChange(`equipe.${index}.foto_url`, `Equipe ${index + 1} · Foto`, previous.foto_url, next.foto_url);
+    pushChange(`equipe.${index}.curriculo`, `Equipe ${index + 1} · Currículo`, previous.curriculo, next.curriculo);
   });
 
   pushChange("opcoes.length", "Total de níveis", before.opcoes.length, after.opcoes.length);
@@ -368,6 +372,7 @@ function AdminProjetoEditor() {
           papel: m.papel,
           instagram_url: m.instagram_url || "",
           foto_url: (m as any).foto_url || "",
+          curriculo: (m as any).curriculo || "",
         }));
         setEquipe(membrosState);
 
@@ -519,6 +524,7 @@ function AdminProjetoEditor() {
               papel: m.papel.trim(),
               instagram_url: normalizeInstagramUrl(m.instagram_url) || null,
               foto_url: m.foto_url?.trim() || null,
+              curriculo: m.curriculo?.trim() || null,
             })),
             opcoes: opcoes.map((o, index) => ({
               valor: o.valor,
@@ -558,7 +564,7 @@ function AdminProjetoEditor() {
   };
 
   const addMembro = () => {
-    setEquipe((current) => [...current, { nome: "", papel: "", instagram_url: "", foto_url: "" }]);
+    setEquipe((current) => [...current, { nome: "", papel: "", instagram_url: "", foto_url: "", curriculo: "" }]);
   };
 
   const removeMembro = (i: number) => {
@@ -803,28 +809,39 @@ function AdminProjetoEditor() {
                   </label>
                 </div>
 
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Nome</Label>
-                    <Input value={m.nome} onChange={(e) => updateMembro(i, "nome", e.target.value)} placeholder="Ex: Maria Silva" />
+                <div className="flex-1 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nome</Label>
+                      <Input value={m.nome} onChange={(e) => updateMembro(i, "nome", e.target.value)} placeholder="Ex: Maria Silva" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Papel</Label>
+                      <Input value={m.papel} onChange={(e) => updateMembro(i, "papel", e.target.value)} placeholder="Ex: Diretora" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <Instagram className="h-3 w-3" /> Instagram
+                      </Label>
+                      <Input
+                        value={m.instagram_url}
+                        onChange={(e) => updateMembro(i, "instagram_url", e.target.value)}
+                        placeholder="https://instagram.com/usuario"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">URL da foto</Label>
+                      <Input value={m.foto_url || ""} onChange={(e) => updateMembro(i, "foto_url", e.target.value)} placeholder="URL da foto do integrante" />
+                    </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Papel</Label>
-                    <Input value={m.papel} onChange={(e) => updateMembro(i, "papel", e.target.value)} placeholder="Ex: Diretora" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs flex items-center gap-1">
-                      <Instagram className="h-3 w-3" /> Instagram
-                    </Label>
-                    <Input
-                      value={m.instagram_url}
-                      onChange={(e) => updateMembro(i, "instagram_url", e.target.value)}
-                      placeholder="https://instagram.com/usuario"
+                    <Label className="text-xs">Currículo (aparece no popup ao clicar na foto)</Label>
+                    <Textarea
+                      value={m.curriculo || ""}
+                      onChange={(e) => updateMembro(i, "curriculo", e.target.value)}
+                      rows={3}
+                      placeholder="Breve trajetória profissional do integrante"
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">URL da foto</Label>
-                    <Input value={m.foto_url || ""} onChange={(e) => updateMembro(i, "foto_url", e.target.value)} placeholder="URL da foto do integrante" />
                   </div>
                 </div>
                 <Button variant="ghost" size="sm" className="text-destructive mt-5" onClick={() => removeMembro(i)}>

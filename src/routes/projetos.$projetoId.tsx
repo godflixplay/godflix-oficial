@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, Users, Clock, ArrowLeft, Star, Sparkles, Crown, Instagram } from "lucide-react";
 import { formatCurrency, calcProgress } from "@/lib/mock-data";
 import { ReelsCarousel, type ReelItem } from "@/components/ReelsCarousel";
@@ -36,6 +37,7 @@ interface EquipeMembro {
   papel: string;
   instagram_url: string | null;
   foto_url: string | null;
+  curriculo: string | null;
 }
 
 interface OpcaoApoio {
@@ -63,6 +65,7 @@ function ProjetoPage() {
 function ProjetoContent() {
   const { projetoId } = Route.useParams();
   const { data } = useSuspenseQuery(projetoDetalheQuery(projetoId));
+  const [membroSelecionado, setMembroSelecionado] = useState<EquipeMembro | null>(null);
 
   if (!data || !data.projeto) {
     return (
@@ -84,6 +87,7 @@ function ProjetoContent() {
   const progress = calcProgress(projeto.arrecadado, projeto.meta);
 
   return (
+    <>
     <div className="min-h-screen pt-16">
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[400px]">
@@ -234,7 +238,14 @@ function ProjetoContent() {
               <h2 className="text-xl font-bold text-foreground mb-3">Equipe</h2>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {equipe.map((m) => (
-                  <Card key={m.id} className="group overflow-hidden border-border bg-card/80">
+                  <Card
+                    key={m.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setMembroSelecionado(m)}
+                    onKeyDown={(e) => e.key === "Enter" && setMembroSelecionado(m)}
+                    className="group overflow-hidden border-border bg-card/80 cursor-pointer transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <div className="relative aspect-[2/3] overflow-hidden bg-gradient-to-b from-muted to-card">
                       {m.foto_url ? (
                         <img
@@ -259,6 +270,7 @@ function ProjetoContent() {
                             href={m.instagram_url}
                             target="_blank"
                             rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1 text-xs text-foreground transition-colors hover:border-primary hover:text-primary"
                           >
                             <Instagram className="h-3 w-3" /> Instagram
@@ -274,5 +286,47 @@ function ProjetoContent() {
         </div>
       </div>
     </div>
+
+    <Dialog open={!!membroSelecionado} onOpenChange={(open) => !open && setMembroSelecionado(null)}>
+      <DialogContent className="max-w-md">
+        {membroSelecionado && (
+          <>
+            <div className="flex items-start gap-4">
+              <div className="w-24 h-32 shrink-0 overflow-hidden rounded-lg border border-border bg-gradient-to-b from-muted to-card">
+                {membroSelecionado.foto_url ? (
+                  <img src={membroSelecionado.foto_url} alt={membroSelecionado.nome} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground text-center p-2">
+                    {membroSelecionado.nome}
+                  </div>
+                )}
+              </div>
+              <DialogHeader className="text-left flex-1">
+                <DialogTitle className="text-xl">{membroSelecionado.nome}</DialogTitle>
+                {membroSelecionado.papel && <p className="text-sm text-muted-foreground">{membroSelecionado.papel}</p>}
+                {membroSelecionado.instagram_url && (
+                  <a
+                    href={membroSelecionado.instagram_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs text-foreground transition-colors hover:border-primary hover:text-primary w-fit"
+                  >
+                    <Instagram className="h-3 w-3" /> Instagram
+                  </a>
+                )}
+              </DialogHeader>
+            </div>
+            {membroSelecionado.curriculo ? (
+              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                {membroSelecionado.curriculo}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Currículo ainda não cadastrado.</p>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

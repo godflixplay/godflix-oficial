@@ -7,6 +7,7 @@ const equipeSchema = z.object({
   papel: z.string().trim().max(160).default(""),
   instagram_url: z.string().trim().max(500).nullable(),
   foto_url: z.string().trim().max(2000).nullable(),
+  curriculo: z.string().trim().max(3000).nullable(),
 });
 
 const opcaoSchema = z.object({
@@ -142,6 +143,7 @@ export const saveProjetoAdmin = createServerFn({ method: "POST" })
         papel: m.papel.trim(),
         instagram_url: normalizeInstagramUrl(m.instagram_url) || null,
         foto_url: m.foto_url?.trim() || null,
+        curriculo: m.curriculo?.trim() || null,
       }));
 
     const opcoesPayload = projeto.opcoes
