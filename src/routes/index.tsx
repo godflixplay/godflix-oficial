@@ -105,9 +105,13 @@ function HomeContent() {
         </div>
       </section>
 
-      <ProjetoDestaqueSection projeto={destaquesHero[0]} />
+      <DorSection />
 
-      <PorQueSection />
+      <ResponsabilidadeSection />
+
+      <MetodoSection />
+
+      <ConviteSection />
 
       <ConteudoSection />
 
@@ -153,8 +157,10 @@ function HomeContent() {
         </div>
       </section>
 
+      <ProjetoDestaqueSection projeto={destaquesHero[0]} />
+
       {/* CTA Membership */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-8">
         <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border border-primary/20 p-10 sm:p-16">
           <div className="max-w-lg">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
@@ -229,36 +235,66 @@ function ProjetoDestaqueSection({ projeto }: { projeto: Projeto }) {
   );
 }
 
-function PorQueSection() {
+function DorSection() {
   return (
-    <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 text-center">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-3">Por que a Godflix existe</p>
-      <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-balance mb-10">
-        Conteúdo de qualidade não devia ser raro pra quem busca edificar a fé
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="text-xs font-bold text-primary tracking-wide mb-3">01</p>
-          <h3 className="font-bold text-foreground mb-2">Fé sem clichê</h3>
-          <p className="text-sm text-muted-foreground">
-            Produções com roteiro, direção e fotografia à altura de qualquer streaming — sem simplificar a mensagem.
-          </p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="text-xs font-bold text-primary tracking-wide mb-3">02</p>
-          <h3 className="font-bold text-foreground mb-2">Família no centro</h3>
-          <p className="text-sm text-muted-foreground">
-            Conteúdo pensado pra ser assistido junto — de crianças a avós — sem escolher entre valores e qualidade.
-          </p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="text-xs font-bold text-primary tracking-wide mb-3">03</p>
-          <h3 className="font-bold text-foreground mb-2">Audiência como fundadora</h3>
-          <p className="text-sm text-muted-foreground">
-            Quem apoia desde o início acompanha o andamento, participa das decisões e é citado nos créditos.
-          </p>
-        </div>
+    <section className="bg-card border-y border-border">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-4">Seja honesto</p>
+        <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground text-balance leading-tight mb-6">
+          Quantas vezes você trocou de canal, fechou o app, ou fingiu não ver — porque não tinha nada bom pra
+          assistir com sua família?
+        </h2>
+        <p className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+          Não é falta de opção. É falta de opção <span className="text-foreground font-semibold">boa</span>. Sobra
+          imitação barata da cultura do mundo com verniz religioso, ou produção tão amadora que ninguém aguenta
+          terminar. E enquanto isso, seus filhos crescem admirando histórias que não têm nada a ver com o que
+          vocês creem.
+        </p>
       </div>
+    </section>
+  );
+}
+
+function ResponsabilidadeSection() {
+  return (
+    <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-4">Ninguém vai fazer isso por nós</p>
+      <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground text-balance mb-6">Se não formos nós, quem?</h2>
+      <p className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+        A indústria não vai construir isso — não é o negócio dela. Ninguém vai financiar de graça. Enquanto isso,
+        a próxima geração cresce sem ver a fé dela representada com qualidade. A mudança começa com quem já
+        decidiu que isso importa — e está disposto a bancar.
+      </p>
+    </section>
+  );
+}
+
+function MetodoSection() {
+  return (
+    <section className="bg-card border-y border-border">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-4">Como isso funciona de verdade</p>
+        <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground text-balance mb-6">
+          Financiamento coletivo, produção profissional.
+        </h2>
+        <p className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+          Cada assinatura entra num fundo que financia produção real — roteiro, direção, elenco, pós-produção — no
+          nível de qualquer streaming. Não é arrecadação pra "ajudar um projetinho". É construir, aos poucos, um
+          catálogo inteiro: filmes, séries, documentários, desenhos. Você não está doando pra caridade. Está
+          investindo numa indústria que ainda não existe no Brasil.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function ConviteSection() {
+  return (
+    <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-4 text-center">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary mb-4">Sua parte nisso</p>
+      <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground text-balance">
+        Você não precisa saber fazer filme. Precisa decidir que vale a pena financiar um.
+      </h2>
     </section>
   );
 }
