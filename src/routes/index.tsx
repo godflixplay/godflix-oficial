@@ -9,10 +9,10 @@ import { projetosHomeQuery, blogRecentesQuery } from "@/lib/queries";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Godflix — Um movimento para impactar sua família" },
-      { name: "description", content: "A Godflix é o movimento de cristãos que vai financiar e produzir conteúdo audiovisual original para edificar sua casa." },
-      { property: "og:title", content: "Godflix — Um movimento para impactar sua família" },
-      { property: "og:description", content: "A Godflix é o movimento de cristãos que vai financiar e produzir conteúdo audiovisual original para edificar sua casa." },
+      { title: "Godflix — Uma cultura evangélica brasileira" },
+      { name: "description", content: "A Godflix produz filmes, séries, documentários e desenhos brasileiros com raiz na Palavra — uma cultura evangélica própria, não imitação." },
+      { property: "og:title", content: "Godflix — Uma cultura evangélica brasileira" },
+      { property: "og:description", content: "A Godflix produz filmes, séries, documentários e desenhos brasileiros com raiz na Palavra — uma cultura evangélica própria, não imitação." },
     ],
   }),
   loader: ({ context: { queryClient } }) => {
@@ -86,12 +86,13 @@ function HomeContent() {
             Produção audiovisual cristã
           </p>
           <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground text-balance leading-tight max-w-3xl mx-auto">
-            Estamos começando um movimento pra impactar a sua família.
+            O Brasil cristão não precisa de mais imitação da cultura do mundo.
             <br />
-            <span className="text-muted-foreground">Vamos produzir conteúdos originais cristãos que vão edificar a sua casa.</span>
+            <span className="text-muted-foreground">Precisa de uma cultura própria.</span>
           </h1>
           <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Um movimento de cristãos dispostos a apoiar desde a fundação — antes mesmo da primeira câmera ligar.
+            A Godflix nasce pra construir isso: filmes, séries, documentários e desenhos brasileiros, com raiz na
+            Palavra e qualidade que não faz concessão. Não é sobre competir com o mundo — é sobre não precisar mais imitar.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
             <Button asChild variant="outline" size="lg">
