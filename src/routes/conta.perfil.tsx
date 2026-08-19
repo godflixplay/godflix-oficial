@@ -44,14 +44,15 @@ function PerfilPage() {
   const [erro, setErro] = useState("");
   const [editando, setEditando] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  // Reflete o que já estava salvo no banco ao carregar a página — não muda
+  // enquanto o usuário digita, pra não trocar de tela antes de ele salvar.
+  const [cadastroJaCompleto, setCadastroJaCompleto] = useState(false);
 
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [aceitaWhatsapp, setAceitaWhatsapp] = useState(false);
-
-  const perfilCompleto = Boolean(nome && whatsapp && cidade && estado);
 
   useEffect(() => {
     (async () => {
@@ -70,11 +71,16 @@ function PerfilPage() {
         .maybeSingle();
 
       const p = perfil as any;
-      setNome(p?.name || "");
-      setWhatsapp(p?.whatsapp ? formatWhatsapp(p.whatsapp.replace(/^\+55/, "")) : "");
-      setCidade(p?.city || "");
-      setEstado(p?.state || "");
+      const nomeCarregado = p?.name || "";
+      const whatsappCarregado = p?.whatsapp ? formatWhatsapp(p.whatsapp.replace(/^\+55/, "")) : "";
+      const cidadeCarregada = p?.city || "";
+      const estadoCarregado = p?.state || "";
+      setNome(nomeCarregado);
+      setWhatsapp(whatsappCarregado);
+      setCidade(cidadeCarregada);
+      setEstado(estadoCarregado);
       setAceitaWhatsapp(Boolean((prefs as any)?.whatsapp_opt_in));
+      setCadastroJaCompleto(Boolean(nomeCarregado && whatsappCarregado && cidadeCarregada && estadoCarregado));
       setLoading(false);
     })();
   }, []);
@@ -127,10 +133,14 @@ function PerfilPage() {
       const next = getNextParam();
       if (next) {
         navigate({ to: next });
+      } else if (cadastroJaCompleto) {
+        // Já era um cadastro completo, isso foi só uma edição — volta pro resumo.
+        setEditando(false);
       } else {
         setConcluido(true);
         setEditando(false);
       }
+      setCadastroJaCompleto(true);
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Não foi possível salvar seus dados.");
     } finally {
@@ -160,7 +170,7 @@ function PerfilPage() {
     );
   }
 
-  if (perfilCompleto && !editando) {
+  if (cadastroJaCompleto && !editando) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-24">
         <div className="w-full max-w-sm space-y-6 text-center">
