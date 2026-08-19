@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star } from "lucide-react";
 import { planosMembro, formatCurrency } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/membros")({
   head: () => ({
@@ -18,6 +19,12 @@ export const Route = createFileRoute("/membros")({
 });
 
 function MembrosPage() {
+  const handleAssinar = async () => {
+    const { data } = await supabase.auth.getSession();
+    const destino = encodeURIComponent("/membros");
+    window.location.href = data.session ? `/conta/perfil?next=${destino}` : `/conta/entrar?next=${destino}`;
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -59,6 +66,7 @@ function MembrosPage() {
                   ))}
                 </ul>
                 <Button
+                  onClick={handleAssinar}
                   className={`w-full ${plano.destaque ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
                   variant={plano.destaque ? "default" : "outline"}
                   size="lg"

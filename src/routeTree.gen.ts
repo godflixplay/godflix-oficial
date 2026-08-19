@@ -20,6 +20,8 @@ import { Route as ConteudoIndexRouteImport } from './routes/conteudo.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ProjetosProjetoIdRouteImport } from './routes/projetos.$projetoId'
 import { Route as ConteudoSlugRouteImport } from './routes/conteudo.$slug'
+import { Route as ContaPerfilRouteImport } from './routes/conta.perfil'
+import { Route as ContaEntrarRouteImport } from './routes/conta.entrar'
 import { Route as AdminConteudoIndexRouteImport } from './routes/admin.conteudo.index'
 import { Route as AdminProjetosProjetoIdRouteImport } from './routes/admin.projetos.$projetoId'
 import { Route as AdminConteudoPostIdRouteImport } from './routes/admin.conteudo.$postId'
@@ -79,6 +81,16 @@ const ConteudoSlugRoute = ConteudoSlugRouteImport.update({
   path: '/conteudo/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContaPerfilRoute = ContaPerfilRouteImport.update({
+  id: '/conta/perfil',
+  path: '/conta/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContaEntrarRoute = ContaEntrarRouteImport.update({
+  id: '/conta/entrar',
+  path: '/conta/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminConteudoIndexRoute = AdminConteudoIndexRouteImport.update({
   id: '/conteudo/',
   path: '/conteudo/',
@@ -103,6 +115,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/producoes': typeof ProducoesRoute
+  '/conta/entrar': typeof ContaEntrarRoute
+  '/conta/perfil': typeof ContaPerfilRoute
   '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -118,6 +132,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/producoes': typeof ProducoesRoute
+  '/conta/entrar': typeof ContaEntrarRoute
+  '/conta/perfil': typeof ContaPerfilRoute
   '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin': typeof AdminIndexRoute
@@ -135,6 +151,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/producoes': typeof ProducoesRoute
+  '/conta/entrar': typeof ContaEntrarRoute
+  '/conta/perfil': typeof ContaPerfilRoute
   '/conteudo/$slug': typeof ConteudoSlugRoute
   '/projetos/$projetoId': typeof ProjetosProjetoIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -153,6 +171,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/membros'
     | '/producoes'
+    | '/conta/entrar'
+    | '/conta/perfil'
     | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin/'
@@ -168,6 +188,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/membros'
     | '/producoes'
+    | '/conta/entrar'
+    | '/conta/perfil'
     | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin'
@@ -184,6 +206,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/membros'
     | '/producoes'
+    | '/conta/entrar'
+    | '/conta/perfil'
     | '/conteudo/$slug'
     | '/projetos/$projetoId'
     | '/admin/'
@@ -201,6 +225,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MembrosRoute: typeof MembrosRoute
   ProducoesRoute: typeof ProducoesRoute
+  ContaEntrarRoute: typeof ContaEntrarRoute
+  ContaPerfilRoute: typeof ContaPerfilRoute
   ConteudoSlugRoute: typeof ConteudoSlugRoute
   ProjetosProjetoIdRoute: typeof ProjetosProjetoIdRoute
   ConteudoIndexRoute: typeof ConteudoIndexRoute
@@ -285,6 +311,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConteudoSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conta/perfil': {
+      id: '/conta/perfil'
+      path: '/conta/perfil'
+      fullPath: '/conta/perfil'
+      preLoaderRoute: typeof ContaPerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conta/entrar': {
+      id: '/conta/entrar'
+      path: '/conta/entrar'
+      fullPath: '/conta/entrar'
+      preLoaderRoute: typeof ContaEntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/conteudo/': {
       id: '/admin/conteudo/'
       path: '/conteudo'
@@ -333,6 +373,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MembrosRoute: MembrosRoute,
   ProducoesRoute: ProducoesRoute,
+  ContaEntrarRoute: ContaEntrarRoute,
+  ContaPerfilRoute: ContaPerfilRoute,
   ConteudoSlugRoute: ConteudoSlugRoute,
   ProjetosProjetoIdRoute: ProjetosProjetoIdRoute,
   ConteudoIndexRoute: ConteudoIndexRoute,
