@@ -113,8 +113,6 @@ function HomeContent() {
 
       <ConviteSection />
 
-      <ConteudoSection />
-
       {/* Como funciona */}
       <section id="como-funciona" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 mb-16 scroll-mt-20">
         <h2 className="text-3xl sm:text-4xl font-bold text-foreground text-center mb-4">
@@ -156,6 +154,8 @@ function HomeContent() {
           </div>
         </div>
       </section>
+
+      <ConteudoSection />
 
       <ProjetoDestaqueSection projeto={destaquesHero[0]} />
 
