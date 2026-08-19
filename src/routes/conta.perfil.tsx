@@ -184,9 +184,15 @@ function PerfilPage() {
             <Button variant="outline" onClick={() => setEditando(true)}>
               Revisar dados
             </Button>
-            <Button asChild className="bg-primary text-primary-foreground">
-              <Link to="/">Voltar ao início</Link>
-            </Button>
+            {getNextParam() ? (
+              <Button className="bg-primary text-primary-foreground" onClick={() => navigate({ to: getNextParam()! })}>
+                Continuar
+              </Button>
+            ) : (
+              <Button asChild className="bg-primary text-primary-foreground">
+                <Link to="/">Voltar ao início</Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>
