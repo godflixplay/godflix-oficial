@@ -51,6 +51,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [
       { rel: "stylesheet", href: appCss },
     ],
+    scripts: [
+      { src: "https://www.googletagmanager.com/gtag/js?id=G-WDMJ3E625F", async: true },
+      {
+        children:
+          "window.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', 'G-WDMJ3E625F');",
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
